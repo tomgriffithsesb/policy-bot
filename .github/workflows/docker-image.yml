@@ -25,8 +25,8 @@ jobs:
     - uses: actions/checkout@v3
     - name: Build the Docker image
       run:         
-        docker build . --file WebApp.Dockerfile --tag fruoccopublic.azurecr.io/sample-app-aoai-chatgpt:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
-        docker tag fruoccopublic.azurecr.io/sample-app-aoai-chatgpt:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER fruoccopublic.azurecr.io/sample-app-aoai-chatgpt:latest;
-        docker push fruoccopublic.azurecr.io/sample-app-aoai-chatgpt:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
-        docker push fruoccopublic.azurecr.io/sample-app-aoai-chatgpt:latest;
+        docker build . --file WebApp.Dockerfile --tag 1c16cb0ae0a54a08beb5d6747fa04b55.azurecr.io/sample-app-aoai-chatgpt:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker tag 1c16cb0ae0a54a08beb5d6747fa04b55.azurecr.io/sample-app-aoai-chatgpt:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER 1c16cb0ae0a54a08beb5d6747fa04b55.azurecr.io/sample-app-aoai-chatgpt:latest;
+        docker push 1c16cb0ae0a54a08beb5d6747fa04b55.azurecr.io/sample-app-aoai-chatgpt:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker push 1c16cb0ae0a54a08beb5d6747fa04b55.azurecr.io/sample-app-aoai-chatgpt:latest;
       
