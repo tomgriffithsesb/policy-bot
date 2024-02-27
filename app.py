@@ -214,79 +214,7 @@ def generateFilterString(userToken):
     group_ids = ", ".join([obj['id'] for obj in userGroups])
     return f"{AZURE_SEARCH_PERMITTED_GROUPS_COLUMN}/any(g:search.in(g, '{group_ids}'))"
 
-def extract_category(message):
-    prompt = """
-        You are an AI assistant for the Electrical Supply Board (ESB).
-        Assign one of the following categories to the text input:
-        - employee benefits, 
-        - money & expenses, 
-        - career & development,
-        - attendance & leave,  
-        - IT support,  
-        - facilities management,  
-        - buying good & services,  
-        - other,  
-        - NA.
-        
-        If the text input does not have something to do with ESB, assign it as NA.
-        Only assign one category and make sure to assign a category to each input. 
-    """
-    completion = openai.ChatCompletion.create(
-        engine=AZURE_OPENAI_MODEL,
-        messages=[
-            {
-                "role": "assistant", 
-                "content": prompt
-            },    
-            {
-                "role": "user",
-                "content": message,
-            },
-        ],
-        max_tokens=6,
-        temperature=0,
-        top_p=0,
-        frequency_penalty=0,
-        presence_penalty=0,
-        stop=AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else None
-    )
-    return completion.choices[0].message.content
 
-def extract_subcategory(message, category):
-    subcategory_prompt = """
-        Assign one of the following subcategories to the text input which includes the message and the assigned category. 
-        You must not use any of these terms as a subcategory:
-        - employee benefits, 
-        - money & expenses, 
-        - career & development, 
-        - attendance & leave,  
-        - IT support,  
-        - facilities management,  
-        - buying good & services.
-
-        Only assign one subcategory and make sure to assign a subcategory to each input. 
-        The output should only have the assigned subcategory and no other words.
-    """
-    completion = openai.ChatCompletion.create(
-        engine=AZURE_OPENAI_MODEL,
-        messages=[
-            {
-                "role": "assistant", 
-                "content": subcategory_prompt
-            },    
-            {
-                "role": "user",
-                "content": message+" /nThe assigned category is "+category,
-            },
-        ],
-        max_tokens=6,
-        temperature=0,
-        top_p=0,
-        frequency_penalty=0,
-        presence_penalty=0,
-        stop=AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else None
-    )
-    return completion.choices[0].message.content
 
 def prepare_body_headers_with_data(request):
     request_messages = request.json["messages"]
@@ -683,57 +611,53 @@ def conversation_internal(request_body):
         logging.exception("Exception in /conversation")
         return jsonify({"error": str(e)}), 500
 
-## Conversation History API ##  
+## Conversation History API ## 
+@app.route("/history/generate", methods=["POST"])
+def add_conversation():
+    global message_uuid
+    message_uuid = str(uuid.uuid4())
+    authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+    user_id = authenticated_user['user_principal_id']
 
-@app.route("/history/generate", methods=["POST"]) 
+    ## check request for conversation_id
+    conversation_id = request.json.get("conversation_id", None)
 
-def add_conversation(): 
-    print(request.json) 
-    global message_uuid 
-    message_uuid = str(uuid.uuid4()) 
-    authenticated_user = get_authenticated_user_details(request_headers=request.headers) 
-    user_id = authenticated_user['user_principal_id'] 
+    try:
+        # make sure cosmos is configured
+        if not cosmos_conversation_client:
+            raise Exception("CosmosDB is not configured")
 
-    ## check request for conversation_id 
-    conversation_id = request.json.get("conversation_id", None) 
-
-    try: 
-        # make sure cosmos is configured 
-        if not cosmos_conversation_client: 
-            raise Exception("CosmosDB is not configured") 
-
-        # check for the conversation_id, if the conversation is not set, we will create a new one 
-        history_metadata = {} 
-        if not conversation_id: 
-            title = generate_title(request.json["messages"]) 
-            conversation_dict = cosmos_conversation_client.create_conversation(user_id=user_id, title=title) 
-            conversation_id = conversation_dict['id'] 
-            history_metadata['title'] = title 
-            history_metadata['date'] = conversation_dict['createdAt'] 
+        # check for the conversation_id, if the conversation is not set, we will create a new one
+        history_metadata = {}
+        if not conversation_id:
+            title = generate_title(request.json["messages"])
+            conversation_dict = cosmos_conversation_client.create_conversation(user_id=user_id, title=title)
+            conversation_id = conversation_dict['id']
+            history_metadata['title'] = title
+            history_metadata['date'] = conversation_dict['createdAt']
             
-        ## Format the incoming message object in the "chat/completions" messages format 
-        ## then write it to the conversation history in cosmos 
-        messages = request.json["messages"] 
-        category = extract_category(messages[-1][“content”]) 
-        print(category) 
-        
-        if len(messages) > 0 and messages[-1]['role'] == "user": 
-            cosmos_conversation_client.create_message( 
-                uuid=str(uuid.uuid4()), 
-                conversation_id=conversation_id, 
-                user_id=user_id, 
-                input_message=messages[-1], 
-                category = category, 
-                subcategory = extract_subcategory(messages[-1][“content”], category)  
+        ## Format the incoming message object in the "chat/completions" messages format
+        ## then write it to the conversation history in cosmos
+        messages = request.json["messages"]
+        if len(messages) > 0 and messages[-1]['role'] == "user":
+            cosmos_conversation_client.create_message(
+                uuid=str(uuid.uuid4()),
+                conversation_id=conversation_id,
+                user_id=user_id,
+                input_message=messages[-1]
             )
         else:
-            raise Exception("No user message found") 
-
-    # Submit request to Chat Completions for response 
-        request_body = request.json 
-        history_metadata['conversation_id'] = conversation_id 
-        request_body['history_metadata'] = history_metadata 
+            raise Exception("No user message found")
+        
+        # Submit request to Chat Completions for response
+        request_body = request.json
+        history_metadata['conversation_id'] = conversation_id
+        request_body['history_metadata'] = history_metadata
         return conversation_internal(request_body)
+       
+    except Exception as e:
+        logging.exception("Exception in /history/generate")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/history/update", methods=["POST"])
