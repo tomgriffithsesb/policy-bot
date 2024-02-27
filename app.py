@@ -683,56 +683,57 @@ def conversation_internal(request_body):
         logging.exception("Exception in /conversation")
         return jsonify({"error": str(e)}), 500
 
-## Conversation History API ## 
-@app.route("/history/generate", methods=["POST"])
-def add_conversation():
-    global message_uuid
-    message_uuid = str(uuid.uuid4())
-    authenticated_user = get_authenticated_user_details(request_headers=request.headers)
-    user_id = authenticated_user['user_principal_id']
+## Conversation History API ##  
 
-    ## check request for conversation_id
-    conversation_id = request.json.get("conversation_id", None)
+@app.route("/history/generate", methods=["POST"]) 
 
-    try:
-        # make sure cosmos is configured
-        if not cosmos_conversation_client:
-            raise Exception("CosmosDB is not configured")
+def add_conversation(): 
+    print(request.json) 
+    global message_uuid 
+    message_uuid = str(uuid.uuid4()) 
+    authenticated_user = get_authenticated_user_details(request_headers=request.headers) 
+    user_id = authenticated_user['user_principal_id'] 
 
-        # check for the conversation_id, if the conversation is not set, we will create a new one
-        history_metadata = {}
-        if not conversation_id:
-            title = generate_title(request.json["messages"])
-            conversation_dict = cosmos_conversation_client.create_conversation(user_id=user_id, title=title)
-            conversation_id = conversation_dict['id']
-            history_metadata['title'] = title
-            history_metadata['date'] = conversation_dict['createdAt']
+    ## check request for conversation_id 
+    conversation_id = request.json.get("conversation_id", None) 
+
+    try: 
+        # make sure cosmos is configured 
+        if not cosmos_conversation_client: 
+            raise Exception("CosmosDB is not configured") 
+
+        # check for the conversation_id, if the conversation is not set, we will create a new one 
+        history_metadata = {} 
+        if not conversation_id: 
+            title = generate_title(request.json["messages"]) 
+            conversation_dict = cosmos_conversation_client.create_conversation(user_id=user_id, title=title) 
+            conversation_id = conversation_dict['id'] 
+            history_metadata['title'] = title 
+            history_metadata['date'] = conversation_dict['createdAt'] 
             
-        ## Format the incoming message object in the "chat/completions" messages format
-        ## then write it to the conversation history in cosmos
-        messages = request.json["messages"]
-        category = extract_category(messages[-1])
-        if len(messages) > 0 and messages[-1]['role'] == "user":
-            cosmos_conversation_client.create_message(
-                uuid=str(uuid.uuid4()),
-                conversation_id=conversation_id,
-                user_id=user_id,
-                input_message=messages[-1],
-                category = category,
-                subcategory = extract_subcategory(messages[-1], category) 
+        ## Format the incoming message object in the "chat/completions" messages format 
+        ## then write it to the conversation history in cosmos 
+        messages = request.json["messages"] 
+        category = extract_category(messages[-1][“content”]) 
+        print(category) 
+        
+        if len(messages) > 0 and messages[-1]['role'] == "user": 
+            cosmos_conversation_client.create_message( 
+                uuid=str(uuid.uuid4()), 
+                conversation_id=conversation_id, 
+                user_id=user_id, 
+                input_message=messages[-1], 
+                category = category, 
+                subcategory = extract_subcategory(messages[-1][“content”], category)  
             )
         else:
-            raise Exception("No user message found")
-        
-        # Submit request to Chat Completions for response
-        request_body = request.json
-        history_metadata['conversation_id'] = conversation_id
-        request_body['history_metadata'] = history_metadata
+            raise Exception("No user message found") 
+
+    # Submit request to Chat Completions for response 
+        request_body = request.json 
+        history_metadata['conversation_id'] = conversation_id 
+        request_body['history_metadata'] = history_metadata 
         return conversation_internal(request_body)
-       
-    except Exception as e:
-        logging.exception("Exception in /history/generate")
-        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/history/update", methods=["POST"])
