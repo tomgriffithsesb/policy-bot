@@ -718,7 +718,7 @@ def add_conversation():
                 conversation_id=conversation_id,
                 user_id=user_id,
                 input_message=messages[-1],
-                category = category
+                category = category,
                 subcategory = extract_subcategory(messages[-1], category) 
             )
         else:
