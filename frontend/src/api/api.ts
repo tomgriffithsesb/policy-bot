@@ -108,6 +108,7 @@ export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
 }
 
 export const historyGenerate = async (options: ConversationRequest, abortSignal: AbortSignal, convId?: string): Promise<Response> => {
+    console.log(options.messages)
     let body;
     if(convId){
         body = JSON.stringify({
