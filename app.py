@@ -228,8 +228,9 @@ def extract_category(message):
         - other,  
         - NA.
         
-        If the text input does not have something to do with ESB, assign it as NA.
-        Only assign one category and make sure to assign a category to each input. 
+        If the input doesn't relate to ESB issues, categorize it as NA. Assign only one category per input and ensure all data received has an allocated category.
+        Your output should consist only of the assigned category, without any additional text or formatting. For example, if the category is 'Employee benefits', your output should simply be 'Employee benefits' 
+        DO NOT USE 'Category:' in your output.
     """
     completion = openai.ChatCompletion.create(
         engine=AZURE_OPENAI_MODEL,
@@ -250,7 +251,8 @@ def extract_category(message):
         presence_penalty=0,
         stop=AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else None
     )
-    return completion.choices[0].message.content
+    result = completion.choices[0].message.content
+    return result.replace('.', '').replace('Category: ', '')
 
 def extract_subcategory(message, category):
     subcategory_prompt = """
@@ -286,7 +288,8 @@ def extract_subcategory(message, category):
         presence_penalty=0,
         stop=AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else None
     )
-    return completion.choices[0].message.content
+    result = completion.choices[0].message.content
+    return result.replace('.', '').replace('Subcategory: ', '')
 
 def prepare_body_headers_with_data(request):
     request_messages = request.json["messages"]
