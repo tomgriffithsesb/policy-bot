@@ -654,15 +654,6 @@ const Chat = () => {
                                     <span className={styles.stopGeneratingText} aria-hidden="true">Stop generating</span>
                                 </Stack>
                             )}
-                            <Stack>
-                                <Dialog
-                                    hidden={hideErrorDialog}
-                                    onDismiss={handleErrorDialogClose}
-                                    dialogContentProps={errorDialogContentProps}
-                                    modalProps={modalProps}
-                                >
-                                </Dialog>
-                            </Stack>
                             <QuestionInput
                                 clearOnSend
                                 placeholder="Type a new question..."
