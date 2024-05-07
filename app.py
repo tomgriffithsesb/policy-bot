@@ -263,14 +263,60 @@ def extract_category(message):
 def extract_subcategory(message, category):
     subcategory_prompt = """
         Assign one of the following subcategories to the text input which includes the message and the assigned category. 
-        You must not use any of these terms as a subcategory:
-        - employee benefits, 
-        - money & expenses, 
-        - career & development, 
-        - attendance & leave,  
-        - IT support,  
-        - facilities management,  
-        - buying good & services.
+        # The subcategories for each category:
+        Money & Expenses:
+        - My Expenses (FAQ)
+        - My Payroll (FAQ)
+        - Claiming your Dental Benefits
+        - Claiming Your Optical Benefits
+        - Claiming Your Visual Display Unit Benefit
+        - Claiming Your Hearing Aid Benefits
+        Career & Development
+        - Career & Development (FAQ)
+        - Learning (FAQ)
+        Attendance & Leave
+        - Attendance & Leave (FAQ)
+        - Maternity Leave
+        - Adoptive Leave
+        - Paternity Leave
+        - Parent's Leave
+        - Parental Leave
+        - Special Leave
+        - Marriage & Civil Partnership Leave
+        - Compassionate Leave
+        - Force Majeure Leave
+        - Carer's Leave
+        - Career Break
+        - Life Balance Time
+        Employee Benefits
+        - Employee Benefits (FAQ)
+        - Staff Electricity Discount (FAQ)
+        - Pensions
+        - Offers for ESB Staff
+        - TaxSaver Travel Ticket
+        - Staff Electricity Discount
+        - Cycle to Work Scheme
+        - Flu Vaccine for ROI Employees
+        - Flu Vaccine for GB & NI Employees
+        - Bowel Cancer Screening Kit
+        - Staff Insurance Scheme
+        IT Support
+        - IT Support (FAQ)
+        - EOLAS (FAQ)
+        - ESB Mobile Phones
+        - ESB Mobile Services Costs
+        - Mobile Phone Features
+        - Offers for ESB Staff
+        - How to Access EOLAS on your Mobile
+        - How to add a Printer in Citrix
+        - Approving an EOLAS Request
+        - IT Security (UAM) Requests
+        Facilities Management
+        - Fitzwilliam 27
+        - One Dublin Airport Central
+        - Swift Square
+
+        For the categories - "Other", "Not Applicable", "Conversational" and "Critical", simply repeat the category for the subcategory.
 
         Only assign one subcategory and make sure to assign a subcategory to each input. 
         The output should only have the assigned subcategory and no other words.
@@ -298,6 +344,7 @@ def extract_subcategory(message, category):
     return result.replace('.', '').replace('Subcategory: ', '')
 
 def prepare_body_headers_with_data(request):
+
     request_messages = request.json["messages"]
 
     body = {
