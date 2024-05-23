@@ -106,14 +106,14 @@ export enum Feedback {
     Neutral = "neutral",
     Positive = "positive",
     Negative = "negative",
-    MissingCitation = "missing_citation",
-    WrongCitation = "wrong_citation",
-    OutOfScope = "out_of_scope",
-    InaccurateOrIrrelevant = "inaccurate_or_irrelevant",
+    DifficultToUnderstand = "difficult_to_understand",
+    NotInformative = "not_informative",
+    IncorrectInformation = "incorrect_information",
+    DidntGetAnswer = "didnt_get_answer",
     OtherUnhelpful = "other_unhelpful",
     HateSpeech = "hate_speech",
     Violent = "violent",
     Sexual = "sexual",
     Manipulative = "manipulative",
-    OtherHarmful = "other_harmlful"
+    OtherHarmful = "other_harmful"
 }
