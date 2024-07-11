@@ -9,24 +9,39 @@ from azure.identity import DefaultAzureCredential
 from base64 import b64encode
 from flask import Flask, Response, request, jsonify, send_from_directory
 from dotenv import load_dotenv
+from quart import (
+    Blueprint,
+    Quart,
+    jsonify,
+    make_response,
+    request,
+    send_from_directory,
+    render_template,
+)
 
 from backend.auth.auth_utils import get_authenticated_user_details
 from backend.history.cosmosdbservice import CosmosConversationClient
 
+bp = Blueprint("routes", __name__, static_folder="static", template_folder="static")
+
 load_dotenv()
 
-app = Flask(__name__, static_folder="static")
+def create_app():
+    app = Quart(__name__)
+    app.register_blueprint(bp)
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    return app
 
 # Static Files
-@app.route("/")
+@bp.route("/")
 def index():
     return app.send_static_file("index.html")
 
-@app.route("/favicon.ico")
+@bp.route("/favicon.ico")
 def favicon():
     return app.send_static_file('favicon.ico')
 
-@app.route("/assets/<path:path>")
+@bp.route("/assets/<path:path>")
 def assets(path):
     return send_from_directory("static/assets", path)
 
@@ -723,7 +738,7 @@ def conversation_without_data(request_body):
         return Response(stream_without_data(response, history_metadata), mimetype='text/event-stream')
 
 
-@app.route("/conversation", methods=["GET", "POST"])
+@bp.route("/conversation", methods=["GET", "POST"])
 def conversation():
     request_body = request.json
     return conversation_internal(request_body)
@@ -740,7 +755,7 @@ def conversation_internal(request_body):
         return jsonify({"error": str(e)}), 500
 
 ## Conversation History API ## 
-@app.route("/history/generate", methods=["POST"])
+@bp.route("/history/generate", methods=["POST"])
 def add_conversation():
     global message_uuid
     message_uuid = str(uuid.uuid4())
@@ -791,7 +806,7 @@ def add_conversation():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/history/update", methods=["POST"])
+@bp.route("/history/update", methods=["POST"])
 def update_conversation():
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user['user_principal_id']
@@ -838,7 +853,7 @@ def update_conversation():
         logging.exception("Exception in /history/update")
         return jsonify({"error": str(e)}), 500
 
-@app.route("/history/message_feedback", methods=["POST"])
+@bp.route("/history/message_feedback", methods=["POST"])
 def update_message():
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user['user_principal_id']
@@ -865,7 +880,7 @@ def update_message():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/history/delete", methods=["DELETE"])
+@bp.route("/history/delete", methods=["DELETE"])
 def delete_conversation():
     ## get the user id from the request headers
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
@@ -888,7 +903,7 @@ def delete_conversation():
         logging.exception("Exception in /history/delete")
         return jsonify({"error": str(e)}), 500
 
-@app.route("/history/list", methods=["GET"])
+@bp.route("/history/list", methods=["GET"])
 def list_conversations():
     offset = request.args.get("offset", 0)
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
@@ -903,7 +918,7 @@ def list_conversations():
 
     return jsonify(conversations), 200
 
-@app.route("/history/read", methods=["POST"])
+@bp.route("/history/read", methods=["POST"])
 def get_conversation():
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user['user_principal_id']
@@ -928,7 +943,7 @@ def get_conversation():
 
     return jsonify({"conversation_id": conversation_id, "messages": messages}), 200
 
-@app.route("/history/rename", methods=["POST"])
+@bp.route("/history/rename", methods=["POST"])
 def rename_conversation():
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user['user_principal_id']
@@ -953,7 +968,7 @@ def rename_conversation():
 
     return jsonify(updated_conversation), 200
 
-@app.route("/history/delete_all", methods=["DELETE"])
+@bp.route("/history/delete_all", methods=["DELETE"])
 def delete_all_conversations():
     ## get the user id from the request headers
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
@@ -980,7 +995,7 @@ def delete_all_conversations():
         return jsonify({"error": str(e)}), 500
     
 
-@app.route("/history/clear", methods=["POST"])
+@bp.route("/history/clear", methods=["POST"])
 def clear_messages():
     ## get the user id from the request headers
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
@@ -1000,7 +1015,7 @@ def clear_messages():
         logging.exception("Exception in /history/clear_messages")
         return jsonify({"error": str(e)}), 500
 
-@app.route("/history/ensure", methods=["GET"])
+@bp.route("/history/ensure", methods=["GET"])
 def ensure_cosmos():
     if not AZURE_COSMOSDB_ACCOUNT:
         return jsonify({"error": "CosmosDB is not configured"}), 404
@@ -1010,7 +1025,7 @@ def ensure_cosmos():
 
     return jsonify({"message": "CosmosDB is configured and working"}), 200
 
-@app.route("/frontend_settings", methods=["GET"])  
+@bp.route("/frontend_settings", methods=["GET"])  
 def get_frontend_settings():
     try:
         return jsonify(frontend_settings), 200
@@ -1049,7 +1064,7 @@ def getPage(number, page_list):
             return page_info["Page"]
     return None  # Return None if no page matches
 
-@app.route("/skillset/page", methods=["POST"])
+@bp.route("/skillset/page", methods=["POST"])
 async def add_page():
     try:
         request_json = await request.get_json()
@@ -1093,5 +1108,4 @@ async def add_page():
         exception = str(e)
         return jsonify({"error": exception}), 500
 
-if __name__ == "__main__":
-    app.run()
+app = create_app()
