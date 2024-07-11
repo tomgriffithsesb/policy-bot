@@ -654,6 +654,7 @@ const Chat = () => {
                                     <span className={styles.stopGeneratingText} aria-hidden="true">Stop generating</span>
                                 </Stack>
                             )}
+
                             <QuestionInput
                                 clearOnSend
                                 placeholder="Type a new question..."
