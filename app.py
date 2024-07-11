@@ -1049,7 +1049,7 @@ def getPage(number, page_list):
             return page_info["Page"]
     return None  # Return None if no page matches
 
-@app.route("/skillset/page", methods=["POST"])
+@bp.route("/skillset/page", methods=["POST"])
 async def add_page():
     try:
         request_json = await request.get_json()
@@ -1067,14 +1067,14 @@ async def add_page():
                 midpoint = (previous_offset + offset) // 2  # Calculate the midpoint
                 page_list.append({"Page": index, "Start": previous_offset + 1, "End": offset, "Midpoint": midpoint})
                 previous_offset = offset
- 
+
             pageNumbers = []
             total_offset = 0
             for text in pages:
                 midpoint_offset = total_offset + (len(text) - 500) // 2  # Calculate the midpoint for the current page
                 pageNumbers.append(getPage(midpoint_offset, page_list))  # Use the midpoint to get the page number
                 total_offset += len(text) - 500
- 
+
             output={
                 "recordId": id,
                 "data": {
@@ -1087,11 +1087,10 @@ async def add_page():
             array.append(output)
         response = jsonify({"values":array})
         return response, 200  # Status code should be 200 for success
- 
+
     except Exception as e:
         logging.exception("Exception in /skillset/page")
         exception = str(e)
         return jsonify({"error": exception}), 500
 
-if __name__ == "__main__":
-    app.run()
+app = create_app()
