@@ -17,12 +17,6 @@ load_dotenv()
 
 app = Flask(__name__, static_folder="static")
 
-def create_app():
-    app = Quart(__name__)
-    app.register_blueprint(bp)
-    app.config["TEMPLATES_AUTO_RELOAD"] = True
-    return app
-
 # Static Files
 @app.route("/")
 def index():
@@ -1055,7 +1049,7 @@ def getPage(number, page_list):
             return page_info["Page"]
     return None  # Return None if no page matches
 
-@bp.route("/skillset/page", methods=["POST"])
+@app.route("/skillset/page", methods=["POST"])
 async def add_page():
     try:
         request_json = await request.get_json()
