@@ -9,15 +9,6 @@ from azure.identity import DefaultAzureCredential
 from base64 import b64encode
 from flask import Flask, Response, request, jsonify, send_from_directory
 from dotenv import load_dotenv
-from quart import (
-    Blueprint,
-    Quart,
-    jsonify,
-    make_response,
-    request,
-    send_from_directory,
-    render_template,
-)
 
 from backend.auth.auth_utils import get_authenticated_user_details
 from backend.history.cosmosdbservice import CosmosConversationClient
@@ -1108,4 +1099,5 @@ async def add_page():
         exception = str(e)
         return jsonify({"error": exception}), 500
 
-app = create_app()
+if __name__ == "__main__":
+    app.run()
