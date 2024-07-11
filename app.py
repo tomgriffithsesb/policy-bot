@@ -9,6 +9,15 @@ from azure.identity import DefaultAzureCredential
 from base64 import b64encode
 from flask import Flask, Response, request, jsonify, send_from_directory
 from dotenv import load_dotenv
+from quart import (
+    Blueprint,
+    Quart,
+    jsonify,
+    make_response,
+    request,
+    send_from_directory,
+    render_template,
+)
 
 from backend.auth.auth_utils import get_authenticated_user_details
 from backend.history.cosmosdbservice import CosmosConversationClient
@@ -16,6 +25,12 @@ from backend.history.cosmosdbservice import CosmosConversationClient
 load_dotenv()
 
 app = Flask(__name__, static_folder="static")
+
+def create_app():
+    app = Quart(__name__)
+    app.register_blueprint(bp)
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    return app
 
 # Static Files
 @app.route("/")
