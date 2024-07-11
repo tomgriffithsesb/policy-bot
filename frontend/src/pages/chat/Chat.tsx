@@ -591,7 +591,7 @@ const Chat = () => {
                                     aria-hidden="true"
                                 />
                                 <h1 className={styles.chatEmptyStateTitle}>Start chatting</h1>
-                                <h2 className={styles.chatEmptyStateSubtitle}>This chatbot is configured to answer your questions about ESB policies</h2>
+                                <h2 className={styles.chatEmptyStateSubtitle}>Hi, I’m EOLAS, and I’m here to assist you with services for your day-to-day life at ESB. Ask me anything on Employee Benefits, Money & Expenses, Career, Attendance & Leave, IT Support, Facilities Management or Buying goods and services.</h2>
                             </Stack>
                         ) : (
                             <div className={styles.chatMessageStream} style={{ marginBottom: isLoading ? "40px" : "0px" }} role="log">
@@ -654,15 +654,7 @@ const Chat = () => {
                                     <span className={styles.stopGeneratingText} aria-hidden="true">Stop generating</span>
                                 </Stack>
                             )}
-                            <Stack>
-                                <Dialog
-                                    hidden={hideErrorDialog}
-                                    onDismiss={handleErrorDialogClose}
-                                    dialogContentProps={errorDialogContentProps}
-                                    modalProps={modalProps}
-                                >
-                                </Dialog>
-                            </Stack>
+
                             <QuestionInput
                                 clearOnSend
                                 placeholder="Type a new question..."

@@ -214,9 +214,137 @@ def generateFilterString(userToken):
     group_ids = ", ".join([obj['id'] for obj in userGroups])
     return f"{AZURE_SEARCH_PERMITTED_GROUPS_COLUMN}/any(g:search.in(g, '{group_ids}'))"
 
+def extract_category(message):
+    prompt = """
+        You are an AI designed for the Electrical Supply Board (ESB). 
+        Your sole function is to categorize all user inputs into precisely one of the predefined categories, based only on their content. This includes single-word inputs or inputs that might seem like they require you to continue the conversation.
+        There should be absolutely no addition of any form of conversational text or formatting to these categories. 
+        Your responses should not attempt to continue the conversation, provide further information, or ask follow-up questions but must only represent the assigned category.
+        Remember, assign only one category per input. 
+        Every input MUST be assigned a category from the list below, without exception. 
+        No matter how brief or conversational the input may be, your responsibility is to output only the allocated category.
 
+        The following are the categories with some examples and descriptions:
+            Employee benefits - "How do I apply for dental benefits?", "What is the staff discount on electricity?"
+            Money & expenses - "What is the standard subsistence allowance?"
+            Career & development - "How does the Employee Referral Scheme work?", "Does ESB facilitate work placement for Transition Year students?"
+            Attendance & leave - "How many days of paternity leave are you entitled to?"
+            IT support - "What is the social media policy?", "How can I get a work mobile phone?"
+            Facilities management - "Does F27 have bike storage?"
+            Other - Use this category for inputs that relate to ESB but do not fall into one of the above categories.
+            Not Applicable - Use this category if the input doesn't relate to ESB or its policies.
+            Conversational - For inputs like "okay", "hi", or other typical conversational phrases and exchanges, these should fall into 'Conversational' category, denoting casual conversation. Do not attempt to continue the conversation or respond back in these cases, simply assign the 'Not Applicable' categorization.
+            Critical - Use this category for inputs that express dissatisfaction or indicate an urgent issue with the tool, such as "I don't understand your response" or "You did not answer my question".
+
+        Now, let’s get to classifying
+    """
+    completion = openai.ChatCompletion.create(
+        engine=AZURE_OPENAI_MODEL,
+        messages=[
+            {
+                "role": "assistant", 
+                "content": prompt
+            },    
+            {
+                "role": "user",
+                "content": message,
+            },
+        ],
+        max_tokens=6,
+        temperature=0,
+        top_p=0,
+        frequency_penalty=0,
+        presence_penalty=0,
+        stop=AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else None
+    )
+    result = completion.choices[0].message.content
+    return result.replace('.', '').replace('Category: ', '')
+
+def extract_subcategory(message, category):
+    subcategory_prompt = """
+        Assign one of the following subcategories to the text input which includes the message and the assigned category. 
+        # The subcategories for each category:
+        Money & Expenses:
+        - My Expenses (FAQ)
+        - My Payroll (FAQ)
+        - Claiming your Dental Benefits
+        - Claiming Your Optical Benefits
+        - Claiming Your Visual Display Unit Benefit
+        - Claiming Your Hearing Aid Benefits
+        Career & Development
+        - Career & Development (FAQ)
+        - Learning (FAQ)
+        Attendance & Leave
+        - Attendance & Leave (FAQ)
+        - Maternity Leave
+        - Adoptive Leave
+        - Paternity Leave
+        - Parent's Leave
+        - Parental Leave
+        - Special Leave
+        - Marriage & Civil Partnership Leave
+        - Compassionate Leave
+        - Force Majeure Leave
+        - Carer's Leave
+        - Career Break
+        - Life Balance Time
+        Employee Benefits
+        - Employee Benefits (FAQ)
+        - Staff Electricity Discount (FAQ)
+        - Pensions
+        - Offers for ESB Staff
+        - TaxSaver Travel Ticket
+        - Staff Electricity Discount
+        - Cycle to Work Scheme
+        - Flu Vaccine for ROI Employees
+        - Flu Vaccine for GB & NI Employees
+        - Bowel Cancer Screening Kit
+        - Staff Insurance Scheme
+        IT Support
+        - IT Support (FAQ)
+        - EOLAS (FAQ)
+        - ESB Mobile Phones
+        - ESB Mobile Services Costs
+        - Mobile Phone Features
+        - Offers for ESB Staff
+        - How to Access EOLAS on your Mobile
+        - How to add a Printer in Citrix
+        - Approving an EOLAS Request
+        - IT Security (UAM) Requests
+        Facilities Management
+        - Fitzwilliam 27
+        - One Dublin Airport Central
+        - Swift Square
+
+        For the categories - "Other", "Not Applicable", "Conversational" and "Critical", simply repeat the category for the subcategory.
+
+        Only assign one subcategory and make sure to assign a subcategory to each input. 
+        The output should only have the assigned subcategory and no other words.
+    """
+    completion = openai.ChatCompletion.create(
+        engine=AZURE_OPENAI_MODEL,
+        messages=[
+            {
+                "role": "assistant", 
+                "content": subcategory_prompt
+            },    
+            {
+                "role": "user",
+                "content": message+" /nThe assigned category is "+category,
+            },
+        ],
+        max_tokens=6,
+        temperature=0,
+        top_p=0,
+        frequency_penalty=0,
+        presence_penalty=0,
+        stop=AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else None
+    )
+    result = completion.choices[0].message.content
+    return result.replace('.', '').replace('Subcategory: ', '')
 
 def prepare_body_headers_with_data(request):
+
     request_messages = request.json["messages"]
 
     body = {
@@ -639,12 +767,15 @@ def add_conversation():
         ## Format the incoming message object in the "chat/completions" messages format
         ## then write it to the conversation history in cosmos
         messages = request.json["messages"]
+        category = extract_category(messages[-1]['content'])
         if len(messages) > 0 and messages[-1]['role'] == "user":
             cosmos_conversation_client.create_message(
                 uuid=str(uuid.uuid4()),
                 conversation_id=conversation_id,
                 user_id=user_id,
-                input_message=messages[-1]
+                input_message=messages[-1],
+                category = category,
+                subcategory = extract_subcategory(messages[-1]['content'], category) 
             )
         else:
             raise Exception("No user message found")
@@ -911,6 +1042,56 @@ def generate_title(conversation_messages):
         return title
     except Exception as e:
         return messages[-2]['content']
+    
+def getPage(number, page_list):
+    for page_info in page_list:
+        if page_info["Start"] <= number and page_info["End"] >= number:
+            return page_info["Page"]
+    return None  # Return None if no page matches
+
+@app.route("/skillset/page", methods=["POST"])
+async def add_page():
+    try:
+        request_json = await request.get_json()
+        values = request_json.get("values", None)
+        array = []
+        id = 0
+        for item in values:
+            offsets = item["data"]["offsets"]
+            pages = item["data"]["pages"]
+            page_list = []
+            previous_offset = 0
+            index = 0
+            for offset in offsets:
+                index += 1
+                midpoint = (previous_offset + offset) // 2  # Calculate the midpoint
+                page_list.append({"Page": index, "Start": previous_offset + 1, "End": offset, "Midpoint": midpoint})
+                previous_offset = offset
+
+            pageNumbers = []
+            total_offset = 0
+            for text in pages:
+                midpoint_offset = total_offset + (len(text) - 500) // 2  # Calculate the midpoint for the current page
+                pageNumbers.append(getPage(midpoint_offset, page_list))  # Use the midpoint to get the page number
+                total_offset += len(text) - 500
+
+            output={
+                "recordId": id,
+                "data": {
+                    "pageNumber": pageNumbers
+                },
+                "errors": None,
+                "warnings": None
+            }
+            id+=1
+            array.append(output)
+        response = jsonify({"values":array})
+        return response, 200  # Status code should be 200 for success
+
+    except Exception as e:
+        logging.exception("Exception in /skillset/page")
+        exception = str(e)
+        return jsonify({"error": exception}), 500
 
 if __name__ == "__main__":
     app.run()
