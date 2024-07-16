@@ -831,7 +831,7 @@ def extract_category(message):
 
         Now, let’s get to classifying
     """
-    completion = AzureOpenAI.ChatCompletion.create(
+    completion = openai.ChatCompletion.create(
         engine=AZURE_OPENAI_MODEL,
         messages=[
             {
