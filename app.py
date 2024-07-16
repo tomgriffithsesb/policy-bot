@@ -6,7 +6,7 @@ import uuid
 from itertools import combinations
 from dotenv import load_dotenv
 import httpx
-import openai
+from openai import AzureOpenAI
 
 from quart import (
     Blueprint,
@@ -807,6 +807,12 @@ def getPage(midpoint_offset, page_list):
             return page["Page"]
     return None  # Return None if no page matches
 
+# gets the API Key from environment variable AZURE_OPENAI_API_KEY
+client = AzureOpenAI(
+    api_version=AZURE_OPENAI_PREVIEW_API_VERSION,
+    azure_endpoint=AZURE_OPENAI_ENDPOINT
+)
+
 def extract_category(message):
     prompt = """
         You are an AI designed for the Electrical Supply Board (ESB). 
@@ -831,7 +837,7 @@ def extract_category(message):
 
         Now, let’s get to classifying
     """
-    completion = openai.ChatCompletion.create(
+    completion = client.chat.completions.create(
         engine=AZURE_OPENAI_MODEL,
         messages=[
             {
@@ -914,7 +920,7 @@ def extract_subcategory(message, category):
         Only assign one subcategory and make sure to assign a subcategory to each input. 
         The output should only have the assigned subcategory and no other words.
     """
-    completion = openai.ChatCompletion.create(
+    completion = client.chat.completions.create(
         engine=AZURE_OPENAI_MODEL,
         messages=[
             {
