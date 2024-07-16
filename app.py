@@ -6,8 +6,8 @@ import uuid
 from itertools import combinations
 from dotenv import load_dotenv
 import httpx
-import requests
-import base64
+import openai
+
 from quart import (
     Blueprint,
     Quart,
@@ -18,15 +18,7 @@ from quart import (
     render_template,
 )
 
-from PIL import Image
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.formrecognizer import DocumentAnalysisClient, AnalysisFeature
-from math import sqrt
-import re
 from azure.identity import DefaultAzureCredential
-from azure.storage.blob import BlobServiceClient, ContentSettings
-from io import BytesIO
-
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
 from backend.auth.auth_utils import get_authenticated_user_details
@@ -35,7 +27,6 @@ from backend.history.cosmosdbservice import CosmosConversationClient
 from backend.utils import (
     format_as_ndjson,
     format_stream_response,
-    generateFilterString,
     parse_multi_columns,
     format_non_streaming_response,
     convert_to_pf_format,
@@ -840,7 +831,7 @@ def extract_category(message):
 
         Now, let’s get to classifying
     """
-    completion = openai.ChatCompletion.create(
+    completion = AzureOpenAI.ChatCompletion.create(
         engine=AZURE_OPENAI_MODEL,
         messages=[
             {
