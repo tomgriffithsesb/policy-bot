@@ -7,6 +7,7 @@ export type AskResponse = {
 };
 
 export type Citation = {
+    part_index?: number;
     content: string;
     id: string;
     title: string | null;
@@ -15,6 +16,7 @@ export type Citation = {
     metadata: string | null;
     chunk_id: string | null;
     reindex_id: string | null;
+    page: string | null;
 }
 
 export type ToolMessageContent = {
@@ -29,6 +31,8 @@ export type ChatMessage = {
     end_turn?: boolean;
     date: string;
     feedback?: Feedback;
+    context?: string;
+    filter?: string[];
 };
 
 export type Conversation = {
@@ -77,6 +81,9 @@ export type UserInfo = {
 export enum CosmosDBStatus {
     NotConfigured = "CosmosDB is not configured",
     NotWorking = "CosmosDB is not working",
+    InvalidCredentials = "CosmosDB has invalid credentials",
+    InvalidDatabase = "Invalid CosmosDB database name",
+    InvalidContainer = "Invalid CosmosDB container name",
     Working = "CosmosDB is configured and working",
 }
 
@@ -97,9 +104,20 @@ export type ErrorMessage = {
     subtitle: string
 }
 
+export type UI = {
+    title: string;
+    chat_title: string;
+    chat_description: string;
+    logo?: string;
+    chat_logo?: string;
+    show_share_button?: boolean
+}
+
 export type FrontendSettings = {
     auth_enabled?: string | null;
     feedback_enabled?: string | null;
+    ui?: UI;
+    sanitize_answer?: boolean;
 }
 
 export enum Feedback {

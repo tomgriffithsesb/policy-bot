@@ -6,6 +6,8 @@ import uuid
 from itertools import combinations
 from dotenv import load_dotenv
 import httpx
+import requests
+import base64
 from quart import (
     Blueprint,
     Quart,
@@ -16,11 +18,20 @@ from quart import (
     render_template,
 )
 
+from PIL import Image
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.formrecognizer import DocumentAnalysisClient, AnalysisFeature
+from math import sqrt
+import re
 from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobServiceClient, ContentSettings
+from io import BytesIO
+
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
 from backend.auth.auth_utils import get_authenticated_user_details
 from backend.history.cosmosdbservice import CosmosConversationClient
+
 from backend.utils import (
     format_as_ndjson,
     format_stream_response,
@@ -476,7 +487,6 @@ def get_configured_data_source(filter):
                     else ""
                 ),
                 "role_information": AZURE_OPENAI_SYSTEM_MESSAGE,
-                "filter": filter,
                 "strictness": (
                     int(AZURE_SEARCH_STRICTNESS)
                     if AZURE_SEARCH_STRICTNESS
@@ -747,15 +757,6 @@ def prepare_model_args(request_body):
     for message in request_messages:
         if message:
             messages.append({"role": message["role"], "content": message["content"]})
-    
-    filter_array = request_messages[-1]["filter"]
-    filter_array.sort()
-    filter_array = create_combination_strings(filter_array)
-
-    if len(filter_array)>0:
-        filter_string = ' or '.join(f"(system eq '{item}')" for item in filter_array)
-    else:
-        filter_string=""
 
     model_args = {
         "messages": messages,
@@ -770,9 +771,6 @@ def prepare_model_args(request_body):
         "stream": SHOULD_STREAM,
         "model": AZURE_OPENAI_MODEL,
     }
-
-    if SHOULD_USE_DATA:
-        model_args["extra_body"] = {"data_sources": [get_configured_data_source(filter_string)]}
 
     model_args_clean = copy.deepcopy(model_args)
     if model_args_clean.get("extra_body"):
@@ -817,7 +815,6 @@ def getPage(midpoint_offset, page_list):
         if page["Start"] <= midpoint_offset <= page["End"]:
             return page["Page"]
     return None  # Return None if no page matches
-
 
 def extract_category(message):
     prompt = """

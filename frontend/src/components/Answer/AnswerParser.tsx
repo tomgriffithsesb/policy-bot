@@ -1,11 +1,25 @@
 import { AskResponse, Citation } from "../../api";
-import { cloneDeep } from "lodash-es";
+import { cloneDeep } from "lodash";
 
 
-type ParsedAnswer = {
+export type ParsedAnswer = {
     citations: Citation[];
     markdownFormatText: string;
 };
+
+export const enumerateCitations = (citations: Citation[]) => {
+    const filepathMap = new Map();
+    for (const citation of citations) {
+        const { filepath } = citation;
+        let part_i = 1
+        if (filepathMap.has(filepath)) {
+            part_i = filepathMap.get(filepath) + 1;
+        }
+        filepathMap.set(filepath, part_i);
+        citation.part_index = part_i;
+    }
+    return citations;
+}
 
 export function parseAnswer(answer: AskResponse): ParsedAnswer {
     let answerText = answer.answer;
@@ -21,12 +35,18 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
         let citation = cloneDeep(answer.citations[Number(citationIndex) - 1]) as Citation;
         if (!filteredCitations.find((c) => c.id === citationIndex) && citation) {
           answerText = answerText.replaceAll(link, ` ^${++citationReindex}^ `);
+          let content = citation.content.split("\n")
+          citation.content = content[0]
+          let pages = content[2].replace("[","").replace("[","").split(",")
           citation.id = citationIndex; // original doc index to de-dupe
           citation.reindex_id = citationReindex.toString(); // reindex from 1 for display
+          let pageNumber = citation.filepath ? citation.filepath.match(/\d+$/) : null;
+          citation.page = pageNumber ? pages[(parseInt(pageNumber[0], 10))].toString() : null;
           filteredCitations.push(citation);
         }
     })
 
+    filteredCitations = enumerateCitations(filteredCitations);
 
     return {
         citations: filteredCitations,

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState, useContext } from "react";
 import { useBoolean } from "@fluentui/react-hooks"
 import { Checkbox, DefaultButton, Dialog, FontIcon, Stack, Text } from "@fluentui/react";
+import DOMPurify from 'dompurify';
 import { AppStateContext } from '../../state/AppProvider';
 
 import styles from "./Answer.module.css";
@@ -11,7 +12,10 @@ import { parseAnswer } from "./AnswerParser";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import supersub from 'remark-supersub'
+import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter';
+import { nord } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ThumbDislike20Filled, ThumbLike20Filled } from "@fluentui/react-icons";
+import { XSSAllowTags } from "../../constants/xssAllowTags";
 
 interface Props {
     answer: AskResponse;
@@ -25,6 +29,7 @@ export const Answer = ({
     const initializeAnswerFeedback = (answer: AskResponse) => {
         if (answer.message_id == undefined) return undefined;
         if (answer.feedback == undefined) return undefined;
+        if (answer.feedback.split(",").length > 1) return Feedback.Negative;
         if (Object.values(Feedback).includes(answer.feedback)) return answer.feedback;
         return Feedback.Neutral;
     }
@@ -39,12 +44,12 @@ export const Answer = ({
     const [showReportInappropriateFeedback, setShowReportInappropriateFeedback] = useState(false);
     const [negativeFeedbackList, setNegativeFeedbackList] = useState<Feedback[]>([]);
     const appStateContext = useContext(AppStateContext)
-    const FEEDBACK_ENABLED = appStateContext?.state.frontendSettings?.feedback_enabled; 
-    
+    const FEEDBACK_ENABLED = appStateContext?.state.frontendSettings?.feedback_enabled && appStateContext?.state.isCosmosDBAvailable?.cosmosDB; 
+    const SANITIZE_ANSWER = appStateContext?.state.frontendSettings?.sanitize_answer 
     const handleChevronClick = () => {
         setChevronIsExpanded(!chevronIsExpanded);
         toggleIsRefAccordionOpen();
-      };
+    };
 
     useEffect(() => {
         setChevronIsExpanded(isRefAccordionOpen);
@@ -65,20 +70,22 @@ export const Answer = ({
     const createCitationFilepath = (citation: Citation, index: number, truncate: boolean = false) => {
         let citationFilename = "";
 
-        if (citation.filepath && citation.chunk_id) {
-            if (truncate && citation.filepath.length > filePathTruncationLimit) {
-                const citationLength = citation.filepath.length;
-                citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength -20)} - Part ${parseInt(citation.chunk_id) + 1}`;
-            }
-            else {
-                citationFilename = `${citation.filepath} - Part ${parseInt(citation.chunk_id) + 1}`;
-            }
-        }
-        else if (citation.filepath && citation.reindex_id) {
-            citationFilename = `${citation.filepath} - Part ${citation.reindex_id}`;
-        }
-        else {
-            citationFilename = `Citation ${index}`;
+        // if (citation.filepath) {
+        //     const part_i = citation.part_index ?? (citation.chunk_id ? parseInt(citation.chunk_id) + 1 : '');
+        //     if (truncate && citation.filepath.length > filePathTruncationLimit) {
+        //         const citationLength = citation.filepath.length;
+        //         citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength - 20)} - Part ${part_i}`;
+        //     }
+        //     else {
+        //         citationFilename = `${citation.filepath} - Part ${part_i}`;
+        //     }
+        // }
+        // else if (citation.filepath && citation.reindex_id) {
+        //     citationFilename = `${citation.filepath} - Part ${citation.reindex_id}`;
+        // }
+        // else {
+            if (citation.filepath) {
+                citationFilename = `${citation.title} - Part ${index}`;
         }
         return citationFilename;
     }
@@ -173,6 +180,21 @@ export const Answer = ({
         );
     }
 
+    const components = {
+        code({node, ...props}: {node: any, [key: string]: any}) {
+            let language;
+            if (props.className) {
+                const match = props.className.match(/language-(\w+)/);
+                language = match ? match[1] : undefined;
+            }
+            const codeString = node.children[0].value ?? '';
+            return (
+                <SyntaxHighlighter style={nord} language={language} PreTag="div" {...props}>
+                    {codeString}
+                </SyntaxHighlighter>
+            );
+        },
+    };
     return (
         <>
             <Stack className={styles.answerContainer} tabIndex={0}>
@@ -183,8 +205,9 @@ export const Answer = ({
                             <ReactMarkdown
                                 linkTarget="_blank"
                                 remarkPlugins={[remarkGfm, supersub]}
-                                children={parsedAnswer.markdownFormatText}
+                                children={SANITIZE_ANSWER ? DOMPurify.sanitize(parsedAnswer.markdownFormatText, {ALLOWED_TAGS: XSSAllowTags}) : parsedAnswer.markdownFormatText}
                                 className={styles.answerText}
+                                components={components}
                             />
                         </Stack.Item>
                         <Stack.Item className={styles.answerHeader}>
@@ -215,7 +238,7 @@ export const Answer = ({
                     <Stack.Item
                         onKeyDown={e => e.key === "Enter" || e.key === " " ? toggleIsRefAccordionOpen() : null}
                     >
-                        <Stack style={{width: "100%"}} >
+                        <Stack style={{ width: "100%" }} >
                             <Stack horizontal horizontalAlign='start' verticalAlign='center'>
                                 <Text
                                     className={styles.accordionTitle}
@@ -239,7 +262,7 @@ export const Answer = ({
                 </Stack.Item>
                 </Stack>
                 {chevronIsExpanded && 
-                    <div style={{ marginTop: 8, display: "flex", flexFlow: "wrap column", maxHeight: "150px", gap: "4px" }}>
+                    <div className={styles.citationWrapper} >
                         {parsedAnswer.citations.map((citation, idx) => {
                             return (
                                 <span 

@@ -37,4 +37,4 @@ call python -m uvicorn app:app  --port 50505 --reload
 if "%errorlevel%" neq "0" (    
     echo Failed to start backend    
     exit /B %errorlevel%    
-)
+) 
