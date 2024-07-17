@@ -839,7 +839,7 @@ def extract_category(message):
         Now, let’s get to classifying
     """
     completion = client.chat.completions.create(
-        engine=AZURE_OPENAI_MODEL,
+        model=AZURE_OPENAI_MODEL,
         messages=[
             {
                 "role": "assistant", 
@@ -922,7 +922,7 @@ def extract_subcategory(message, category):
         The output should only have the assigned subcategory and no other words.
     """
     completion = client.chat.completions.create(
-        engine=AZURE_OPENAI_MODEL,
+        model=AZURE_OPENAI_MODEL,
         messages=[
             {
                 "role": "assistant", 
