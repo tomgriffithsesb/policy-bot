@@ -128,7 +128,7 @@ class CosmosConversationClient():
         else:
             return conversations[0]
  
-    async def create_message(self, uuid, conversation_id, user_id, input_message: dict, category='', subcategory=''):
+    async def create_message(self, uuid, conversation_id, user_id, input_message: dict, category, subcategory):
         message = {
             'id': uuid,
             'type': 'message',
