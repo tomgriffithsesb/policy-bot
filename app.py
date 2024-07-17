@@ -809,6 +809,7 @@ def getPage(midpoint_offset, page_list):
 
 # gets the API Key from environment variable AZURE_OPENAI_API_KEY
 client = AzureOpenAI(
+    api_key=AZURE_OPENAI_KEY,  
     api_version=AZURE_OPENAI_PREVIEW_API_VERSION,
     azure_endpoint=AZURE_OPENAI_ENDPOINT
 )
