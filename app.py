@@ -401,7 +401,7 @@ def init_cosmosdb_client():
     return cosmos_conversation_client
 
 
-def get_configured_data_source(filter):
+def get_configured_data_source():
     data_source = {}
     query_type = "simple"
     if DATASOURCE_TYPE == "AzureCognitiveSearch":
@@ -413,20 +413,6 @@ def get_configured_data_source(filter):
             and AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
         ):
             query_type = "semantic"
-
-        # Set filter
-        # filter = None
-        # userToken = None
-        # if AZURE_SEARCH_PERMITTED_GROUPS_COLUMN:
-        #     userToken = request.headers.get("X-MS-TOKEN-AAD-ACCESS-TOKEN", "")
-        #     logging.debug(f"USER TOKEN is {'present' if userToken else 'not present'}")
-        #     if not userToken:
-        #         raise Exception(
-        #             "Document-level access control is enabled, but user access token could not be fetched."
-        #         )
-
-        #     filter = generateFilterString(userToken)
-        #     logging.debug(f"FILTER: {filter}")
 
         # Set authentication
         authentication = {}
@@ -478,7 +464,6 @@ def get_configured_data_source(filter):
                     else ""
                 ),
                 "role_information": AZURE_OPENAI_SYSTEM_MESSAGE,
-                "filter": filter,
                 "strictness": (
                     int(AZURE_SEARCH_STRICTNESS)
                     if AZURE_SEARCH_STRICTNESS
