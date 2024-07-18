@@ -119,7 +119,7 @@
 }
 
 .chatMessageErrorContent {
-    font-family: "Segoe UI";
+    font-family: 'Segoe UI';
     font-style: normal;
     font-weight: 400;
     font-size: 14px;
@@ -128,7 +128,7 @@
     word-wrap: break-word;
     gap: 12px;
     align-items: center;
-}
+  }
 
 .chatInput {
     position: sticky;
