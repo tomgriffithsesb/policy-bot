@@ -79,84 +79,6 @@ def generateFilterString(userToken):
     return f"{AZURE_SEARCH_PERMITTED_GROUPS_COLUMN}/any(g:search.in(g, '{group_ids}'))"
 
 
-def format_non_streaming_response(chatCompletion, history_metadata, apim_request_id):
-    response_obj = {
-        "id": chatCompletion.id,
-        "model": chatCompletion.model,
-        "created": chatCompletion.created,
-        "object": chatCompletion.object,
-        "choices": [{"messages": []}],
-        "history_metadata": history_metadata,
-        "apim-request-id": apim_request_id,
-    }
-
-    if len(chatCompletion.choices) > 0:
-        message = chatCompletion.choices[0].message
-        if message:
-            if hasattr(message, "context"):
-                response_obj["choices"][0]["messages"].append(
-                    {
-                        "role": "tool",
-                        "content": json.dumps(message.context),
-                    }
-                )
-            response_obj["choices"][0]["messages"].append(
-                {
-                    "role": "assistant",
-                    "content": message.content,
-                }
-            )
-            return response_obj
-
-    return {}
-
-def format_stream_response(chatCompletionChunk, history_metadata, apim_request_id): 
-    response_obj = { 
-        "id": chatCompletionChunk.id, 
-        "model": chatCompletionChunk.model, 
-        "created": chatCompletionChunk.created, 
-        "object": chatCompletionChunk.object, 
-        "choices": [{"messages": []}], 
-        "history_metadata": history_metadata, 
-        "apim-request-id": apim_request_id, 
-    } 
-
-    if len(chatCompletionChunk.choices) > 0: 
-        delta = chatCompletionChunk.choices[0].delta 
-        if delta: 
-            if hasattr(delta, "context"): 
-                content = delta.context 
-                for i, chunk in enumerate(content["citations"]): 
-                    content["citations"][i]["url"]=chunk["url"]+"?"+generate_SAS(chunk["url"]) 
-                messageObj = {"role": "tool", "content": json.dumps(content)} 
-                response_obj["choices"][0]["messages"].append(messageObj) 
-
-                return response_obj 
-
-            if delta.role == "assistant" and hasattr(delta, "context"): 
-                messageObj = { 
-                    "role": "assistant", 
-                    "context": delta.context, 
-                } 
-
-                response_obj["choices"][0]["messages"].append(messageObj) 
-                
-                return response_obj 
-
-            else: 
-                if delta.content: 
-                    messageObj = { 
-                        "role": "assistant", 
-                        "content": delta.content, 
-                    } 
-
-                    response_obj["choices"][0]["messages"].append(messageObj) 
-                    
-                    return response_obj
-
-    return {} 
-
-
 def format_non_streaming_response(chatCompletion, history_metadata, apim_request_id): 
     response_obj = { 
         "id": chatCompletion.id, 
@@ -192,6 +114,88 @@ def format_non_streaming_response(chatCompletion, history_metadata, apim_request
 
     return {} 
 
+def format_stream_response(chatCompletionChunk, history_metadata, apim_request_id): 
+    response_obj = { 
+        "id": chatCompletionChunk.id, 
+        "model": chatCompletionChunk.model, 
+        "created": chatCompletionChunk.created, 
+        "object": chatCompletionChunk.object, 
+        "choices": [{"messages": []}], 
+        "history_metadata": history_metadata, 
+        "apim-request-id": apim_request_id, 
+    } 
+
+    if len(chatCompletionChunk.choices) > 0: 
+        delta = chatCompletionChunk.choices[0].delta 
+        if delta: 
+            if hasattr(delta, "context"): 
+                content = delta.context 
+                for i, chunk in enumerate(content["citations"]): 
+                    content["citations"][i]["url"]=chunk["url"]+"?"+generate_SAS(chunk["url"]) 
+                messageObj = {"role": "tool", "content": json.dumps(content)} 
+                response_obj["choices"][0]["messages"].append(messageObj) 
+
+                return response_obj 
+
+            if delta.role == "assistant" and hasattr(delta, "context"): 
+                messageObj = { 
+                    "role": "assistant", 
+                    "context": delta.context, 
+                } 
+                response_obj["choices"][0]["messages"].append(messageObj) 
+                
+                return response_obj 
+            else: 
+                if delta.content: 
+                    messageObj = { 
+                        "role": "assistant", 
+                        "content": delta.content, 
+                    } 
+                    response_obj["choices"][0]["messages"].append(messageObj) 
+                    
+                    return response_obj 
+
+    return {} 
+
+
+def format_pf_non_streaming_response(
+    chatCompletion, history_metadata, response_field_name, message_uuid=None
+):
+    if chatCompletion is None:
+        logging.error(
+            "chatCompletion object is None - Increase PROMPTFLOW_RESPONSE_TIMEOUT parameter"
+        )
+        return {
+            "error": "No response received from promptflow endpoint increase PROMPTFLOW_RESPONSE_TIMEOUT parameter or check the promptflow endpoint."
+        }
+    if "error" in chatCompletion:
+        logging.error(f"Error in promptflow response api: {chatCompletion['error']}")
+        return {"error": chatCompletion["error"]}
+
+    logging.debug(f"chatCompletion: {chatCompletion}")
+    try:
+        response_obj = {
+            "id": chatCompletion["id"],
+            "model": "",
+            "created": "",
+            "object": "",
+            "choices": [
+                {
+                    "messages": [
+                        {
+                            "role": "assistant",
+                            "content": chatCompletion[response_field_name],
+                        }
+                    ]
+                }
+            ],
+            "history_metadata": history_metadata,
+        }
+        return response_obj
+    except Exception as e:
+        logging.error(f"Exception in format_pf_non_streaming_response: {e}")
+        return {}
+
 
 def convert_to_pf_format(input_json, request_field_name, response_field_name):
     output_json = []
@@ -210,10 +214,10 @@ def convert_to_pf_format(input_json, request_field_name, response_field_name):
     logging.debug(f"PF formatted response: {output_json}")
     return output_json
 
+
 def remove_SAS_token(url): 
     parsed_url = urlparse(url) 
     url_without_query = parsed_url.scheme + "://" + parsed_url.netloc + parsed_url.path 
-    
     return url_without_query 
 
 def generate_SAS(url): 
@@ -221,7 +225,6 @@ def generate_SAS(url):
     blob_service_client =BlobServiceClient(BLOB_ACCOUNT, credential=BLOB_CREDENTIAL) 
     blob_client = blob_service_client.get_blob_client(container=container, blob=blob) 
     sas_token_expiry_time = datetime.utcnow() + timedelta(hours=1)  # 1 hour from now 
-
     sas_token = generate_blob_sas( 
         account_name=blob_client.account_name, 
         container_name=blob_client.container_name, 
@@ -243,4 +246,3 @@ def split_url(url):
     blob = match.group(2) 
 
     return container, blob 
-
