@@ -2,7 +2,11 @@ import uuid
 from datetime import datetime
 from azure.cosmos.aio import CosmosClient
 from azure.cosmos import exceptions
-  
+from backend.utils import ( 
+    generate_SAS
+)
+import json
+
 class CosmosConversationClient():
     
     def __init__(self, cosmosdb_endpoint: str, credential: any, database_name: str, container_name: str, enable_message_feedback: bool = False):
@@ -168,20 +172,28 @@ class CosmosConversationClient():
         else:
             return False
 
-    async def get_messages(self, user_id, conversation_id):
-        parameters = [
-            {
-                'name': '@conversationId',
-                'value': conversation_id
-            },
-            {
-                'name': '@userId',
-                'value': user_id
-            }
-        ]
-        query = f"SELECT * FROM c WHERE c.conversationId = @conversationId AND c.type='message' AND c.userId = @userId ORDER BY c.timestamp ASC"
-        messages = []
-        async for item in self.container_client.query_items(query=query, parameters=parameters):
-            messages.append(item)
+    async def get_messages(self, user_id, conversation_id): 
+        parameters = [ 
+            { 
+                'name': '@conversationId', 
+                'value': conversation_id 
+            }, 
+            { 
+                'name': '@userId', 
+                'value': user_id 
+            } 
+        ] 
 
-        return messages
+        query = f"SELECT * FROM c WHERE c.conversationId = @conversationId AND c.type='message' AND c.userId = @userId ORDER BY c.timestamp ASC" 
+        messages = [] 
+
+        async for item in self.container_client.query_items(query=query, parameters=parameters): 
+            if item["role"]=="tool": 
+                content = json.loads(item["content"]) 
+                for i, chunk in enumerate(content["citations"]): 
+                    content["citations"][i]["url"]=chunk["url"]+"?"+generate_SAS(chunk["url"]) 
+                item["content"] = json.dumps(content) 
+            messages.append(item) 
+
+        return messages 
+
