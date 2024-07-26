@@ -220,6 +220,18 @@ def remove_SAS_token(url):
     url_without_query = parsed_url.scheme + "://" + parsed_url.netloc + parsed_url.path 
     return url_without_query 
 
+def split_url(url): 
+    url_decoded = unquote(url) 
+    if url_decoded.endswith('/'): 
+        url_decoded = url_decoded[:-1] 
+    pattern = fr"{BLOB_ACCOUNT}/([^/]+)/(.+)" 
+    match = re.search(pattern, url_decoded) 
+    print('Match is',match)
+    container = match.group(1) 
+    blob = match.group(2) 
+
+    return container, blob 
+
 def generate_SAS(url): 
     container, blob = split_url(url) 
     blob_service_client =BlobServiceClient(BLOB_ACCOUNT, credential=BLOB_CREDENTIAL) 
@@ -236,14 +248,4 @@ def generate_SAS(url):
 
     return sas_token 
 
-def split_url(url): 
-    url_decoded = unquote(url) 
-    if url_decoded.endswith('/'): 
-        url_decoded = url_decoded[:-1] 
-    pattern = fr"{BLOB_ACCOUNT}/([^/]+)/(.+)" 
-    match = re.search(pattern, url_decoded) 
-    print('Match is',match)
-    container = match.group(1) 
-    blob = match.group(2) 
 
-    return container, blob 
