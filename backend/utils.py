@@ -242,6 +242,7 @@ def split_url(url):
         url_decoded = url_decoded[:-1] 
     pattern = fr"{BLOB_ACCOUNT}/([^/]+)/(.+)" 
     match = re.search(pattern, url_decoded) 
+    print('Match is',match)
     container = match.group(1) 
     blob = match.group(2) 
 
