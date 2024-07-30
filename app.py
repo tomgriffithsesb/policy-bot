@@ -7,7 +7,6 @@ from itertools import combinations
 from dotenv import load_dotenv
 import httpx
 from openai import AzureOpenAI
-
 from quart import (
     Blueprint,
     Quart,
@@ -27,6 +26,8 @@ from backend.history.cosmosdbservice import CosmosConversationClient
 from backend.utils import (
     format_as_ndjson,
     format_stream_response,
+    remove_SAS_token,
+    remove_SAS_from_image_link,
     parse_multi_columns,
     format_non_streaming_response,
     convert_to_pf_format,
@@ -52,13 +53,12 @@ UI_CHAT_DESCRIPTION = (
 UI_FAVICON = os.environ.get("UI_FAVICON") or "/favicon.ico"
 UI_SHOW_SHARE_BUTTON = os.environ.get("UI_SHOW_SHARE_BUTTON", "true").lower() == "true"
 
-# Document Intelligence Configuration
-DOCUMENT_INTELLIGENCE_ENDPOINT = os.environ.get("DOCUMENT_INTELLIGENCE_ENDPOINT")
-DOCUMENT_INTELLIGENCE_KEY = os.environ.get("DOCUMENT_INTELLIGENCE_KEY")
-# Blob Storage
-BLOB_CREDENTIAL = os.environ.get("BLOB_CREDENTIAL")
-BLOB_ACCOUNT = os.environ.get("BLOB_ACCOUNT")
-
+# # Document Intelligence Configuration
+# DOCUMENT_INTELLIGENCE_ENDPOINT = os.environ.get("DOCUMENT_INTELLIGENCE_ENDPOINT")
+# DOCUMENT_INTELLIGENCE_KEY = os.environ.get("DOCUMENT_INTELLIGENCE_KEY")
+# # Blob Storage
+# BLOB_CREDENTIAL = os.environ.get("BLOB_CREDENTIAL")
+# BLOB_ACCOUNT = os.environ.get("BLOB_ACCOUNT")
 
 def create_app():
     app = Quart(__name__)
@@ -1048,7 +1048,6 @@ def get_frontend_settings():
         logging.exception("Exception in /frontend_settings")
         return jsonify({"error": str(e)}), 500
 
-
 ## Conversation History API ##
 @bp.route("/history/generate", methods=["POST"])
 async def add_conversation():
@@ -1103,7 +1102,7 @@ async def add_conversation():
         # Submit request to Chat Completions for response
         request_body = await request.get_json()
         history_metadata["conversation_id"] = conversation_id
-        request_body["history_metadata"] = history_metadata
+        request_body["history_metadata"] = history_metadata                
         return await conversation_internal(request_body)
 
     except Exception as e:
@@ -1136,13 +1135,18 @@ async def update_conversation():
         if len(messages) > 0 and messages[-1]["role"] == "assistant":
             if len(messages) > 1 and messages[-2].get("role", None) == "tool":
                 # write the tool message first
+                content = json.loads(messages[-2].get("content", None))
+                for i, chunk in enumerate(content["citations"]):
+                    content["citations"][i]["url"]=remove_SAS_token(chunk["url"])
+                messages[-2]["content"] = json.dumps(content)
                 await cosmos_conversation_client.create_message(
                     uuid=str(uuid.uuid4()),
                     conversation_id=conversation_id,
                     user_id=user_id,
-                    input_message=messages[-2],
+                    input_message=messages[-2]
                 )
             # write the assistant message
+            messages[-1]['content'] = remove_SAS_from_image_link(messages[-1]['content'])
             await cosmos_conversation_client.create_message(
                 uuid=messages[-1]["id"],
                 conversation_id=conversation_id,
