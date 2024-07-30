@@ -803,52 +803,7 @@ client = AzureOpenAI(
     azure_endpoint=AZURE_OPENAI_ENDPOINT
 )
 
-def extract_category(message):
-    prompt = """
-        You are an AI designed for the Electrical Supply Board (ESB). 
-        Your sole function is to categorize all user inputs into precisely one of the predefined categories, based only on their content. This includes single-word inputs or inputs that might seem like they require you to continue the conversation.
-        There should be absolutely no addition of any form of conversational text or formatting to these categories. 
-        Your responses should not attempt to continue the conversation, provide further information, or ask follow-up questions but must only represent the assigned category.
-        Remember, assign only one category per input. 
-        Every input MUST be assigned a category from the list below, without exception. 
-        No matter how brief or conversational the input may be, your responsibility is to output only the allocated category.
-
-        The following are the categories with some examples and descriptions:
-            Employee benefits - "How do I apply for dental benefits?", "What is the staff discount on electricity?"
-            Money & expenses - "What is the standard subsistence allowance?"
-            Career & development - "How does the Employee Referral Scheme work?", "Does ESB facilitate work placement for Transition Year students?"
-            Attendance & leave - "How many days of paternity leave are you entitled to?"
-            IT support - "What is the social media policy?", "How can I get a work mobile phone?"
-            Facilities management - "Does F27 have bike storage?"
-            Other - Use this category for inputs that relate to ESB but do not fall into one of the above categories.
-            Not Applicable - Use this category if the input doesn't relate to ESB or its policies.
-            Conversational - For inputs like "okay", "hi", or other typical conversational phrases and exchanges, these should fall into 'Conversational' category, denoting casual conversation. Do not attempt to continue the conversation or respond back in these cases, simply assign the 'Not Applicable' categorization.
-            Critical - Use this category for inputs that express dissatisfaction or indicate an urgent issue with the tool, such as "I don't understand your response" or "You did not answer my question".
-
-        Now, let’s get to classifying
-    """
-    completion = client.chat.completions.create(
-        model=AZURE_OPENAI_MODEL,
-        messages=[
-            {
-                "role": "assistant", 
-                "content": prompt
-            },    
-            {
-                "role": "user",
-                "content": message,
-            },
-        ],
-        max_tokens=6,
-        temperature=0,
-        top_p=0,
-        frequency_penalty=0,
-        presence_penalty=0,
-        stop=AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else None
-    )
-    result = completion.choices[0].message.content
-    return result.replace('.', '').replace('Category: ', '')
-
+'''
 def extract_subcategory(message, category):
     subcategory_prompt = """
         Assign one of the following subcategories to the text input which includes the message and the assigned category. 
@@ -931,6 +886,7 @@ def extract_subcategory(message, category):
     )
     result = completion.choices[0].message.content
     return result.replace('.', '').replace('Subcategory: ', '')
+'''
 
 async def promptflow_request(request):
     try:
@@ -1079,15 +1035,12 @@ async def add_conversation():
         ## Format the incoming message object in the "chat/completions" messages format
         ## then write it to the conversation history in cosmos
         messages = request_json["messages"]
-        category = extract_category(messages[-1]['content'])
         if len(messages) > 0 and messages[-1]["role"] == "user":
             createdMessageValue = await cosmos_conversation_client.create_message(
                 uuid=str(uuid.uuid4()),
                 conversation_id=conversation_id,
                 user_id=user_id,
                 input_message=messages[-1],
-                category = category,
-                subcategory = extract_subcategory(messages[-1]['content'], category) 
             )
             if createdMessageValue == "Conversation not found":
                 raise Exception(
