@@ -147,7 +147,6 @@ def format_non_streaming_response(chatCompletion, history_metadata, apim_request
             if hasattr(message, "context"):
                 content = message.context
                 for i, chunk in enumerate(content["citations"]):
-                    print('Chunk:',chunk)
                     content["citations"][i]["url"]=chunk["url"]+"?"+generate_SAS(chunk["url"])
                 response_obj["choices"][0]["messages"].append(
                     {
