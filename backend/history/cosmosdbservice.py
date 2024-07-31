@@ -3,10 +3,11 @@ from datetime import datetime
 from azure.cosmos.aio import CosmosClient
 from azure.cosmos import exceptions
 import json
-from backend.utils import ( 
-    generate_SAS
+from backend.utils import (
+    generate_SAS,
+    append_SAS_to_image_link
 )
-
+  
 class CosmosConversationClient():
     
     def __init__(self, cosmosdb_endpoint: str, credential: any, database_name: str, container_name: str, enable_message_feedback: bool = False):
@@ -143,11 +144,9 @@ class CosmosConversationClient():
             'role': input_message['role'],
             'content': input_message['content']
         }
-
         if ((category is not '')and(subcategory is not '')):
             message['category']=category
             message['subcategory']=subcategory
-
         if self.enable_message_feedback:
             message['feedback'] = ''
         
@@ -192,5 +191,7 @@ class CosmosConversationClient():
                     content["citations"][i]["url"]=chunk["url"]+"?"+generate_SAS(chunk["url"])
                 item["content"] = json.dumps(content)
             messages.append(item)
+            if item["role"]=="assistant":
+                item["content"] = append_SAS_to_image_link(item["content"])
         return messages
 
