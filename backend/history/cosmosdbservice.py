@@ -144,7 +144,7 @@ class CosmosConversationClient():
             'role': input_message['role'],
             'content': input_message['content']
         }
-
+        
         if ((category is not '')and(subcategory is not '')):
             message['category']=category
             message['subcategory']=subcategory
