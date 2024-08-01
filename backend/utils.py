@@ -44,14 +44,13 @@ def parse_multi_columns(columns: str) -> list:
 def getUserBusinessUnit(userToken):
     endpoint = "https://graph.microsoft.com/v1.0/me?$select=companyName"
     headers = {"Authorization": "Bearer " + userToken}
-    print("User token is:",userToken)
     try:
         r = requests.get(endpoint, headers=headers)
         if r.status_code != 200:
             logging.error(f"Error fetching user's business unit: {r.status_code} {r.text}")
             return []
 
-        return r['companyName']
+        return r.json()['companyName']
     
     except Exception as e:
         logging.error(f"Exception in getUserBusinessUnit: {e}")
@@ -161,7 +160,6 @@ def format_non_streaming_response(chatCompletion, history_metadata, apim_request
         if message:
             if hasattr(message, "context"):
                 content = message.context
-                print('Content:',content['citations'])
                 for i, chunk in enumerate(content["citations"]):
                     content["citations"][i]["url"]=chunk["url"]+"?"+generate_SAS(chunk["url"])
                 response_obj["choices"][0]["messages"].append(
@@ -196,7 +194,6 @@ def format_stream_response(chatCompletionChunk, history_metadata, apim_request_i
         if delta:
             if hasattr(delta, "context"):
                 content = delta.context
-                print('Content:',content['citations'])
                 for i, chunk in enumerate(content["citations"]):
                     content["citations"][i]["url"]=chunk["url"]+"?"+generate_SAS(chunk["url"])
                 messageObj = {
