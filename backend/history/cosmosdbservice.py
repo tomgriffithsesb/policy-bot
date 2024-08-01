@@ -133,7 +133,7 @@ class CosmosConversationClient():
         else:
             return conversations[0]
  
-    async def create_message(self, uuid, conversation_id, user_id, input_message: dict, category='', subcategory=''):
+    async def create_message(self, uuid, conversation_id, user_id, input_message: dict, category='', subcategory='', businessunit=''):
         message = {
             'id': uuid,
             'type': 'message',
@@ -148,6 +148,9 @@ class CosmosConversationClient():
         if ((category is not '')and(subcategory is not '')):
             message['category']=category
             message['subcategory']=subcategory
+
+        if businessunit is not '':
+            message['businessunit']=businessunit
 
         if self.enable_message_feedback:
             message['feedback'] = ''

@@ -41,6 +41,21 @@ def parse_multi_columns(columns: str) -> list:
     else:
         return columns.split(",")
 
+def getUserBusinessUnit(userToken):
+    endpoint = "https://graph.microsoft.com/v1.0/me?$select=companyName"
+    headers = {"Authorization": "Bearer " + userToken}
+    print("User token is:",userToken)
+    try:
+        r = requests.get(endpoint, headers=headers)
+        if r.status_code != 200:
+            logging.error(f"Error fetching user's business unit: {r.status_code} {r.text}")
+            return []
+
+        return r['companyName']
+    
+    except Exception as e:
+        logging.error(f"Exception in getUserBusinessUnit: {e}")
+        return []
 
 def fetchUserGroups(userToken, nextLink=None):
     # Recursively fetch group membership

@@ -32,6 +32,7 @@ from backend.utils import (
     format_non_streaming_response,
     convert_to_pf_format,
     format_pf_non_streaming_response,
+    getUserBusinessUnit
 )
 
 bp = Blueprint("routes", __name__, static_folder="static", template_folder="static")
@@ -1053,6 +1054,7 @@ def get_frontend_settings():
 async def add_conversation():
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user["user_principal_id"]
+    user_auth_token = authenticated_user["auth_token"]
 
     ## check request for conversation_id
     request_json = await request.get_json()
@@ -1086,7 +1088,8 @@ async def add_conversation():
                 user_id=user_id,
                 input_message=messages[-1],
                 category = category,
-                subcategory = extract_subcategory(messages[-1]['content'], category) 
+                subcategory = extract_subcategory(messages[-1]['content'], category), 
+                businessunit = getUserBusinessUnit(user_auth_token)
             )
             if createdMessageValue == "Conversation not found":
                 raise Exception(
