@@ -146,6 +146,7 @@ def format_non_streaming_response(chatCompletion, history_metadata, apim_request
         if message:
             if hasattr(message, "context"):
                 content = message.context
+                print('Content:',content)
                 for i, chunk in enumerate(content["citations"]):
                     content["citations"][i]["url"]=chunk["url"]+"?"+generate_SAS(chunk["url"])
                 response_obj["choices"][0]["messages"].append(
@@ -180,6 +181,7 @@ def format_stream_response(chatCompletionChunk, history_metadata, apim_request_i
         if delta:
             if hasattr(delta, "context"):
                 content = delta.context
+                print('Content:',content)
                 for i, chunk in enumerate(content["citations"]):
                     content["citations"][i]["url"]=chunk["url"]+"?"+generate_SAS(chunk["url"])
                 messageObj = {
