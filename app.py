@@ -1054,7 +1054,7 @@ def get_frontend_settings():
 async def add_conversation():
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user["user_principal_id"]
-    user_auth_token = request.headers.get("X-MS-TOKEN-AAD-ACCESS-TOKEN", "")
+    user_auth_token = authenticated_user["auth_token"]
 
     ## check request for conversation_id
     request_json = await request.get_json()
