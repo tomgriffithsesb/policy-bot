@@ -49,7 +49,7 @@ def getUserBusinessUnit(userToken):
         if r.status_code != 200:
             logging.error(f"Error fetching user's business unit: {r.status_code} {r.text}")
             return []
-
+        print(r.json())
         return r.json()['companyName']
     
     except Exception as e:
