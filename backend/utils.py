@@ -43,7 +43,7 @@ def parse_multi_columns(columns: str) -> list:
 
 def getUserBusinessUnit(userToken):
     endpoint = "https://graph.microsoft.com/v1.0/me?$select=companyName"
-    headers = {"Authorization": "Bearer " + userToken}
+    headers = {"Authorization": "bearer " + userToken}
     try:
         r = requests.get(endpoint, headers=headers)
         if r.status_code != 200:
