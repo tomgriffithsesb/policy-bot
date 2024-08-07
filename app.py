@@ -1141,12 +1141,23 @@ async def update_conversation():
                 content = json.loads(messages[-2].get("content", None))
                 for i, chunk in enumerate(content["citations"]):
                     content["citations"][i]["url"]=remove_SAS_token(chunk["url"])
+                if len(content["citations"]) > 0:
+                    files_list = []
+                    for i in enumerate(content['citations']):
+                        files_list.append(i[1]['title'])
+
+                    filenames = list(dict.fromkeys(files_list))
+
+                else:
+                    pass
                 messages[-2]["content"] = json.dumps(content)
+                
                 await cosmos_conversation_client.create_message(
                     uuid=str(uuid.uuid4()),
                     conversation_id=conversation_id,
                     user_id=user_id,
-                    input_message=messages[-2]
+                    input_message=messages[-2],
+                    filenames=filenames
                 )
             # write the assistant message
             messages[-1]['content'] = remove_SAS_from_image_link(messages[-1]['content'])

@@ -133,7 +133,7 @@ class CosmosConversationClient():
         else:
             return conversations[0]
  
-    async def create_message(self, uuid, conversation_id, user_id, input_message: dict, category='', subcategory='', businessunit=''):
+    async def create_message(self, uuid, conversation_id, user_id, input_message: dict, category='', subcategory='', businessunit='', filenames=''):
         message = {
             'id': uuid,
             'type': 'message',
@@ -148,6 +148,9 @@ class CosmosConversationClient():
         if ((category is not '')and(subcategory is not '')):
             message['category']=category
             message['subcategory']=subcategory
+
+        if filenames is not '':
+            message['filenames']=filenames
 
         if businessunit is not '':
             message['businessunit']=businessunit
