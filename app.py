@@ -1149,7 +1149,7 @@ async def update_conversation():
                     filenames = list(dict.fromkeys(files_list))
 
                 else:
-                    pass
+                    filenames=[]
                 messages[-2]["content"] = json.dumps(content)
                 
                 await cosmos_conversation_client.create_message(
