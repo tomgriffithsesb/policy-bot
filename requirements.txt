@@ -12,3 +12,4 @@ gunicorn==20.1.0
 Pillow==10.3.0
 azure-ai-ml==1.8.0
 azure-ai-formrecognizer==3.3.3
+pandas==2.2.2
