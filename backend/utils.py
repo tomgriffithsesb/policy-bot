@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import re
 from urllib.parse import unquote, urlparse
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
+import pandas as pd
 
 DEBUG = os.environ.get("DEBUG", "false")
 if DEBUG.lower() == "true":
@@ -276,3 +277,46 @@ def convert_to_pf_format(input_json, request_field_name, response_field_name):
                 output_json[-1]["outputs"][response_field_name] = message["content"]
     logging.debug(f"PF formatted response: {output_json}")
     return output_json
+
+def get_category_data(url):
+    new_url = url+"?"+generate_SAS(url)
+    categories_df = pd.read_excel(new_url,'CategoryMapping')
+    examples_df = pd.read_excel(new_url,'Examples')
+    subcategories = examples_df.to_json(orient='records')
+    categories = categories_df.to_json(orient='records')
+
+    return categories, subcategories
+
+def get_query_category(client, model, message, categories, subcategories):
+    prompt = f"""
+        You are an AI designed to categorise user inputs into predefined subcategories and categories. The following JSON contains a list of the subcategories and several examples of questions that fit into each subcategory: {subcategories}
+        Using the examples provided, classify each user input into the subcategories defined. You must not make any modifications to the subcategory names provided in the JSON. 
+        Any inputs that do not fit into the defined subcategories should be given a subcategory of "Other".
+        Once you have assigned a subcategory, you must also assign a high level category to the input. The following JSON contains a list of the high level categories and the subcategories that fit into each category: {categories}. 
+        If the assigned subcategory is "Other", you should still attempt to assign it a category based on the category names.
+        Any inputs that do not fit into the categories defined should be assigned to the "Other" category.
+        Your output should clearly show both the assigned category and subcategory in the following format: "Category: [your assigned category], Subcategory: [your assigned subcategory]".
+    """
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "assistant", 
+                "content": prompt
+            },    
+            {
+                "role": "user",
+                "content": message,
+            },
+        ],
+        max_tokens=20,
+        temperature=0,
+        top_p=0,
+        frequency_penalty=0,
+        presence_penalty=0,
+        stop=None
+    )
+    result = completion.choices[0].message.content.split(', ',2)
+    category = result[0].split('Category: ',1)[1]
+    subcategory = result[1].split('Subcategory: ',1)[1]
+    return category, subcategory

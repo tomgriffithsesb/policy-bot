@@ -32,7 +32,9 @@ from backend.utils import (
     format_non_streaming_response,
     convert_to_pf_format,
     format_pf_non_streaming_response,
-    getUserBusinessUnit
+    getUserBusinessUnit,
+    get_category_data,
+    get_query_category
 )
 
 bp = Blueprint("routes", __name__, static_folder="static", template_folder="static")
@@ -59,7 +61,9 @@ UI_SHOW_SHARE_BUTTON = os.environ.get("UI_SHOW_SHARE_BUTTON", "true").lower() ==
 # DOCUMENT_INTELLIGENCE_KEY = os.environ.get("DOCUMENT_INTELLIGENCE_KEY")
 # # Blob Storage
 # BLOB_CREDENTIAL = os.environ.get("BLOB_CREDENTIAL")
-# BLOB_ACCOUNT = os.environ.get("BLOB_ACCOUNT")
+BLOB_ACCOUNT = os.environ.get("BLOB_ACCOUNT")
+BLOB_CONTAINER = os.environ.get("BLOB_CONTAINER")
+CATEGORIES_DATA_FILEPATH = os.environ.get("CATEGORIES_DATA_FILEPATH")
 
 def create_app():
     app = Quart(__name__)
@@ -804,135 +808,6 @@ client = AzureOpenAI(
     azure_endpoint=AZURE_OPENAI_ENDPOINT
 )
 
-def extract_category(message):
-    prompt = """
-        You are an AI designed for the Electrical Supply Board (ESB). 
-        Your sole function is to categorize all user inputs into precisely one of the predefined categories, based only on their content. This includes single-word inputs or inputs that might seem like they require you to continue the conversation.
-        There should be absolutely no addition of any form of conversational text or formatting to these categories. 
-        Your responses should not attempt to continue the conversation, provide further information, or ask follow-up questions but must only represent the assigned category.
-        Remember, assign only one category per input. 
-        Every input MUST be assigned a category from the list below, without exception. 
-        No matter how brief or conversational the input may be, your responsibility is to output only the allocated category.
-
-        The following are the categories with some examples and descriptions:
-            Employee benefits - "How do I apply for dental benefits?", "What is the staff discount on electricity?"
-            Money & expenses - "What is the standard subsistence allowance?"
-            Career & development - "How does the Employee Referral Scheme work?", "Does ESB facilitate work placement for Transition Year students?"
-            Attendance & leave - "How many days of paternity leave are you entitled to?"
-            IT support - "What is the social media policy?", "How can I get a work mobile phone?"
-            Facilities management - "Does F27 have bike storage?"
-            Other - Use this category for inputs that relate to ESB but do not fall into one of the above categories.
-            Not Applicable - Use this category if the input doesn't relate to ESB or its policies.
-            Conversational - For inputs like "okay", "hi", or other typical conversational phrases and exchanges, these should fall into 'Conversational' category, denoting casual conversation. Do not attempt to continue the conversation or respond back in these cases, simply assign the 'Not Applicable' categorization.
-            Critical - Use this category for inputs that express dissatisfaction or indicate an urgent issue with the tool, such as "I don't understand your response" or "You did not answer my question".
-
-        Now, let’s get to classifying
-    """
-    completion = client.chat.completions.create(
-        model=AZURE_OPENAI_MODEL,
-        messages=[
-            {
-                "role": "assistant", 
-                "content": prompt
-            },    
-            {
-                "role": "user",
-                "content": message,
-            },
-        ],
-        max_tokens=6,
-        temperature=0,
-        top_p=0,
-        frequency_penalty=0,
-        presence_penalty=0,
-        stop=AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else None
-    )
-    result = completion.choices[0].message.content
-    return result.replace('.', '').replace('Category: ', '')
-
-def extract_subcategory(message, category):
-    subcategory_prompt = """
-        Assign one of the following subcategories to the text input which includes the message and the assigned category. 
-        # The subcategories for each category:
-        Money & Expenses:
-        - My Expenses (FAQ)
-        - My Payroll (FAQ)
-        - Claiming your Dental Benefits
-        - Claiming Your Optical Benefits
-        - Claiming Your Visual Display Unit Benefit
-        - Claiming Your Hearing Aid Benefits
-        Career & Development
-        - Career & Development (FAQ)
-        - Learning (FAQ)
-        Attendance & Leave
-        - Attendance & Leave (FAQ)
-        - Maternity Leave
-        - Adoptive Leave
-        - Paternity Leave
-        - Parent's Leave
-        - Parental Leave
-        - Special Leave
-        - Marriage & Civil Partnership Leave
-        - Compassionate Leave
-        - Force Majeure Leave
-        - Carer's Leave
-        - Career Break
-        - Life Balance Time
-        Employee Benefits
-        - Employee Benefits (FAQ)
-        - Staff Electricity Discount (FAQ)
-        - Pensions
-        - Offers for ESB Staff
-        - TaxSaver Travel Ticket
-        - Staff Electricity Discount
-        - Cycle to Work Scheme
-        - Flu Vaccine for ROI Employees
-        - Flu Vaccine for GB & NI Employees
-        - Bowel Cancer Screening Kit
-        - Staff Insurance Scheme
-        IT Support
-        - IT Support (FAQ)
-        - EOLAS (FAQ)
-        - ESB Mobile Phones
-        - ESB Mobile Services Costs
-        - Mobile Phone Features
-        - Offers for ESB Staff
-        - How to Access EOLAS on your Mobile
-        - How to add a Printer in Citrix
-        - Approving an EOLAS Request
-        - IT Security (UAM) Requests
-        Facilities Management
-        - Fitzwilliam 27
-        - One Dublin Airport Central
-        - Swift Square
-
-        For the categories - "Other", "Not Applicable", "Conversational" and "Critical", simply repeat the category for the subcategory.
-
-        Only assign one subcategory and make sure to assign a subcategory to each input. 
-        The output should only have the assigned subcategory and no other words.
-    """
-    completion = client.chat.completions.create(
-        model=AZURE_OPENAI_MODEL,
-        messages=[
-            {
-                "role": "assistant", 
-                "content": subcategory_prompt
-            },    
-            {
-                "role": "user",
-                "content": message+" /nThe assigned category is "+category,
-            },
-        ],
-        max_tokens=6,
-        temperature=0,
-        top_p=0,
-        frequency_penalty=0,
-        presence_penalty=0,
-        stop=AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else None
-    )
-    result = completion.choices[0].message.content
-    return result.replace('.', '').replace('Subcategory: ', '')
-
 async def promptflow_request(request):
     try:
         headers = {
@@ -1049,6 +924,11 @@ def get_frontend_settings():
         logging.exception("Exception in /frontend_settings")
         return jsonify({"error": str(e)}), 500
 
+# Category data
+categories_url = BLOB_ACCOUNT+"/"+BLOB_CONTAINER+"/"+CATEGORIES_DATA_FILEPATH
+categories = get_category_data(categories_url)[0]
+subcategories = get_category_data(categories_url)[1]
+
 ## Conversation History API ##
 @bp.route("/history/generate", methods=["POST"])
 async def add_conversation():
@@ -1080,7 +960,8 @@ async def add_conversation():
         ## Format the incoming message object in the "chat/completions" messages format
         ## then write it to the conversation history in cosmos
         messages = request_json["messages"]
-        category = extract_category(messages[-1]['content'])
+        cat_and_subcat = get_query_category(client, AZURE_OPENAI_MODEL, messages[-1]['content'],categories,subcategories)
+        category, subcategory = cat_and_subcat[0], cat_and_subcat[1]
         if len(messages) > 0 and messages[-1]["role"] == "user":
             createdMessageValue = await cosmos_conversation_client.create_message(
                 uuid=str(uuid.uuid4()),
@@ -1088,7 +969,7 @@ async def add_conversation():
                 user_id=user_id,
                 input_message=messages[-1],
                 category = category,
-                subcategory = extract_subcategory(messages[-1]['content'], category), 
+                subcategory = subcategory, 
                 businessunit = getUserBusinessUnit(user_auth_token)
             )
             if createdMessageValue == "Conversation not found":
@@ -1149,7 +1030,7 @@ async def update_conversation():
                     filenames = list(dict.fromkeys(files_list))
 
                 else:
-                    filenames=[]
+                    filenames=""
                 messages[-2]["content"] = json.dumps(content)
                 
                 await cosmos_conversation_client.create_message(
