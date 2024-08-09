@@ -64,6 +64,7 @@ UI_SHOW_SHARE_BUTTON = os.environ.get("UI_SHOW_SHARE_BUTTON", "true").lower() ==
 BLOB_ACCOUNT = os.environ.get("BLOB_ACCOUNT")
 BLOB_CONTAINER = os.environ.get("BLOB_CONTAINER")
 CATEGORIES_DATA_FILEPATH = os.environ.get("CATEGORIES_DATA_FILEPATH")
+CATEGORIES_PROMPT = os.environ.get("CATEGORIES_PROMPT")
 
 def create_app():
     app = Quart(__name__)
@@ -928,6 +929,7 @@ def get_frontend_settings():
 categories_url = BLOB_ACCOUNT+"/"+BLOB_CONTAINER+"/"+CATEGORIES_DATA_FILEPATH
 categories = get_category_data(categories_url)[0]
 subcategories = get_category_data(categories_url)[1]
+categories_prompt = CATEGORIES_DATA_FILEPATH.format(categories,subcategories)
 
 ## Conversation History API ##
 @bp.route("/history/generate", methods=["POST"])
