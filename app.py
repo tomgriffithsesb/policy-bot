@@ -929,7 +929,7 @@ def get_frontend_settings():
 categories_url = BLOB_ACCOUNT+"/"+BLOB_CONTAINER+"/"+CATEGORIES_DATA_FILEPATH
 categories = get_category_data(categories_url)[0]
 subcategories = get_category_data(categories_url)[1]
-categories_prompt = CATEGORIES_DATA_FILEPATH.format(categories,subcategories)
+categories_prompt = CATEGORIES_DATA_FILEPATH.format(categories=categories,subcategories=subcategories)
 
 ## Conversation History API ##
 @bp.route("/history/generate", methods=["POST"])
@@ -962,7 +962,7 @@ async def add_conversation():
         ## Format the incoming message object in the "chat/completions" messages format
         ## then write it to the conversation history in cosmos
         messages = request_json["messages"]
-        cat_and_subcat = get_query_category(client, AZURE_OPENAI_MODEL, messages[-1]['content'],categories,subcategories)
+        cat_and_subcat = get_query_category(categories_prompt, client, AZURE_OPENAI_MODEL, messages[-1]['content'])
         category, subcategory = cat_and_subcat[0], cat_and_subcat[1]
         if len(messages) > 0 and messages[-1]["role"] == "user":
             createdMessageValue = await cosmos_conversation_client.create_message(
