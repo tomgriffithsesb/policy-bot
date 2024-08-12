@@ -309,6 +309,7 @@ def get_query_category(prompt, client, model, message):
         stop=None
     )
     result = completion.choices[0].message.content.split(', ',2)
+    logging.info("Result: "+result[0])
     category = result[0].split('Category: ',1)[1].replace('.','')
     subcategory = result[1].split('Subcategory: ',1)[1].replace('.','')
     return category, subcategory
