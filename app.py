@@ -955,9 +955,10 @@ async def add_conversation():
         ## Format the incoming message object in the "chat/completions" messages format
         ## then write it to the conversation history in cosmos
         messages = request_json["messages"]
+        cat_and_subcat = get_query_category(categories_prompt, client, AZURE_OPENAI_MODEL, messages[-2]['content'])
+        category, subcategory = cat_and_subcat[0], cat_and_subcat[1]
         if len(messages) > 0 and messages[-1]["role"] == "user":
-            cat_and_subcat = get_query_category(categories_prompt, client, AZURE_OPENAI_MODEL, messages[-1]['content'])
-            category, subcategory = cat_and_subcat[0], cat_and_subcat[1]
+            
             createdMessageValue = await cosmos_conversation_client.create_message(
                 uuid=str(uuid.uuid4()),
                 conversation_id=conversation_id,
@@ -981,7 +982,7 @@ async def add_conversation():
         # Submit request to Chat Completions for response
         request_body = await request.get_json()
         history_metadata["conversation_id"] = conversation_id
-        request_body["history_metadata"] = history_metadata                
+        request_body["history_metadata"] = history_metadata
         return await conversation_internal(request_body)
 
     except Exception as e:
