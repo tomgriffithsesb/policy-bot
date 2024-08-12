@@ -56,44 +56,11 @@ UI_CHAT_DESCRIPTION = (
 UI_FAVICON = os.environ.get("UI_FAVICON") or "/favicon.ico"
 UI_SHOW_SHARE_BUTTON = os.environ.get("UI_SHOW_SHARE_BUTTON", "true").lower() == "true"
 
-# # Document Intelligence Configuration
-# DOCUMENT_INTELLIGENCE_ENDPOINT = os.environ.get("DOCUMENT_INTELLIGENCE_ENDPOINT")
-# DOCUMENT_INTELLIGENCE_KEY = os.environ.get("DOCUMENT_INTELLIGENCE_KEY")
-# # Blob Storage
-# BLOB_CREDENTIAL = os.environ.get("BLOB_CREDENTIAL")
+# Custom Settings
 BLOB_ACCOUNT = os.environ.get("BLOB_ACCOUNT")
 BLOB_CONTAINER = os.environ.get("BLOB_CONTAINER")
 CATEGORIES_DATA_FILEPATH = os.environ.get("CATEGORIES_DATA_FILEPATH")
 CATEGORIES_PROMPT = os.environ.get("CATEGORIES_PROMPT")
-
-def create_app():
-    app = Quart(__name__)
-    app.register_blueprint(bp)
-    app.config["TEMPLATES_AUTO_RELOAD"] = True
-    return app
-
-
-@bp.route("/")
-async def index():
-    return await render_template("index.html", title=UI_TITLE, icon=(UI_LOGO or './assets/Contoso-ff70ad88.svg'), favicon=UI_FAVICON)
-
-
-@bp.route("/favicon.ico")
-async def favicon():
-    return await bp.send_static_file("favicon.ico")
-
-
-@bp.route("/assets/<path:path>")
-async def assets(path):
-    return await send_from_directory("static/assets", path)
-
-
-# Debug settings
-DEBUG = os.environ.get("DEBUG", "false")
-if DEBUG.lower() == "true":
-    logging.basicConfig(level=logging.DEBUG)
-
-USER_AGENT = "GitHubSampleWebApp/AsyncAzureOpenAI/1.0.0"
 
 # On Your Data Settings
 DATASOURCE_TYPE = os.environ.get("DATASOURCE_TYPE", "AzureCognitiveSearch")
@@ -281,6 +248,34 @@ frontend_settings = {
     "sanitize_answer": SANITIZE_ANSWER,
 }
 
+def create_app():
+    app = Quart(__name__)
+    app.register_blueprint(bp)
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    return app
+
+
+@bp.route("/")
+async def index():
+    return await render_template("index.html", title=UI_TITLE, icon=(UI_LOGO or './assets/Contoso-ff70ad88.svg'), favicon=UI_FAVICON)
+
+
+@bp.route("/favicon.ico")
+async def favicon():
+    return await bp.send_static_file("favicon.ico")
+
+
+@bp.route("/assets/<path:path>")
+async def assets(path):
+    return await send_from_directory("static/assets", path)
+
+
+# Debug settings
+DEBUG = os.environ.get("DEBUG", "false")
+if DEBUG.lower() == "true":
+    logging.basicConfig(level=logging.DEBUG)
+
+USER_AGENT = "GitHubSampleWebApp/AsyncAzureOpenAI/1.0.0"
 
 def should_use_data():
     global DATASOURCE_TYPE
@@ -316,9 +311,7 @@ def should_use_data():
 
     return False
 
-
 SHOULD_USE_DATA = should_use_data()
-
 
 # Initialize Azure OpenAI Client
 def init_openai_client(use_data=SHOULD_USE_DATA):
@@ -930,6 +923,8 @@ categories_url = BLOB_ACCOUNT+"/"+BLOB_CONTAINER+"/"+CATEGORIES_DATA_FILEPATH
 categories = get_category_data(categories_url)[0]
 subcategories = get_category_data(categories_url)[1]
 categories_prompt = CATEGORIES_DATA_FILEPATH.format(categories=categories,subcategories=subcategories)
+
+print("Categories:", categories)
 
 ## Conversation History API ##
 @bp.route("/history/generate", methods=["POST"])
