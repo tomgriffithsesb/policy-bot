@@ -924,7 +924,9 @@ categories = get_category_data(categories_url)[0]
 subcategories = get_category_data(categories_url)[1]
 categories_prompt = CATEGORIES_DATA_FILEPATH.format(categories=categories,subcategories=subcategories)
 
-print("Categories:", categories)
+
+logging.info("Categories: "+categories)
+logging.info("Subcategories: "+subcategories)
 
 ## Conversation History API ##
 @bp.route("/history/generate", methods=["POST"])

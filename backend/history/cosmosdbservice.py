@@ -145,14 +145,14 @@ class CosmosConversationClient():
             'content': input_message['content']
         }
         
-        if ((category is not '')and(subcategory is not '')):
+        if ((category != '')and(subcategory != '')):
             message['category']=category
             message['subcategory']=subcategory
 
-        if filenames is not '':
+        if filenames != '':
             message['filenames']=filenames
 
-        if businessunit is not '':
+        if businessunit != '':
             message['businessunit']=businessunit
 
         if self.enable_message_feedback:
