@@ -289,7 +289,7 @@ def get_category_data(url):
 
 def get_query_category(prompt, client, model, message):
     prompt = prompt
-    completion = client.chat.completions.create(
+    completion = client.chat.completions.create(\
         model=model,
         messages=[
             {
