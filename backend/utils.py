@@ -307,7 +307,6 @@ def get_query_category(prompt, client, model, message):
         presence_penalty=0,
         stop=None
     )
-    logging.info("Categorisation return:"+completion.choices[0].message.content)
     result = completion.choices[0].message.content.split(', ',2)
     category = result[0].split('Category: ',1)[1].replace('.','')
     subcategory = result[1].split('Subcategory: ',1)[1].replace('.','')
