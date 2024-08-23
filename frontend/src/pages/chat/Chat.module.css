@@ -20,7 +20,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: radial-gradient(108.78% 108.78% at 50.02% 19.78%, #FFFFFF 57.29%, #EEF6FE 100%);
+    background: radial-gradient(108.78% 108.78% at 50.02% 19.78%, #FFFFFF 57.29%, #F2F5F5 100%);
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
     border-radius: 8px;
     overflow-y: auto;
@@ -53,7 +53,6 @@
     font-weight: 400;
     font-size: 16px;
     line-height: 150%;
-    display: flex;
     align-items: flex-end;
     text-align: center;
     letter-spacing: -0.01em;
@@ -61,8 +60,8 @@
 }
 
 .chatIcon {
-    height: 64px;
-    width: 194px;
+    height: 62px;
+    width: auto;
 }
 
 .chatMessageStream {
@@ -84,8 +83,9 @@
 }
 
 .chatMessageUserMessage {
+    display: flex;
     padding: 20px;
-    background: #EDF5FD;
+    background: #F2F5F5;
     border-radius: 8px;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
     font-style: normal;
@@ -93,12 +93,11 @@
     font-size: 14px;
     line-height: 22px;
     color: #242424;
-    flex: none;
     order: 0;
     flex-grow: 0;
     white-space: pre-wrap;
     word-wrap: break-word;
-    max-width: 800px;
+    max-width: 80%;
 }
 
 .chatMessageGpt {
@@ -120,7 +119,7 @@
 }
 
 .chatMessageErrorContent {
-    font-family: "Segoe UI";
+    font-family: 'Segoe UI';
     font-style: normal;
     font-weight: 400;
     font-size: 14px;
@@ -129,7 +128,7 @@
     word-wrap: break-word;
     gap: 12px;
     align-items: center;
-}
+  }
 
 .chatInput {
     position: sticky;
@@ -142,6 +141,54 @@
     max-width: 1028px;
     margin-bottom: 50px;
     margin-top: 8px;
+}
+
+.clearChatBroom {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    left: 7px;
+    top: 13px;
+    color: #FFFFFF;
+    border-radius: 4px;
+    z-index: 1;
+}
+
+.clearChatBroomNoCosmos {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    left: 7px;
+    top: 66px;
+    color: #FFFFFF;
+    border-radius: 4px;
+    z-index: 1;
+}
+
+.newChatIcon {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    left: 7px;
+    top: 10px;
+    color: #ffffff;
+    border-radius: 4px;
+    z-index: 1;
 }
 
 .stopGeneratingContainer {
@@ -172,7 +219,7 @@
     height: 20px;
     font-style: normal;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     line-height: 20px;
     display: flex;
     align-items: center;
@@ -275,4 +322,31 @@ a {
 .viewSourceButton:hover {
     text-decoration: underline;
     cursor: pointer;
+}
+
+@media (max-width: 480px) {
+    .chatInput {
+        width: 90%;
+        max-width: 90%;
+    }
+
+    .newChatIcon {
+        left: 0px;
+    }
+
+    .clearChatBroom {
+        left: 0px;
+    }
+
+    .clearChatBroomNoCosmos {
+        left: 0px;
+    }
+
+    .chatEmptyStateTitle {
+        line-height: 36px;
+    }
+
+    .citationPanel {
+        max-width: 100%;
+    }
 }

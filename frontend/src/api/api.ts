@@ -108,7 +108,6 @@ export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
 }
 
 export const historyGenerate = async (options: ConversationRequest, abortSignal: AbortSignal, convId?: string): Promise<Response> => {
-    console.log(options.messages)
     let body;
     if(convId){
         body = JSON.stringify({
@@ -128,9 +127,11 @@ export const historyGenerate = async (options: ConversationRequest, abortSignal:
         body: body,
         signal: abortSignal
     }).then((res) => {
+        console.log(res)
         return res
     })
     .catch((err) => {
+        console.log("There was an issue fetching your data.")
         console.error("There was an issue fetching your data.");
         return new Response;
     })
@@ -273,6 +274,10 @@ export const historyEnsure = async (): Promise<CosmosDBHealth> => {
         }else{
             if(res.status === 500){
                 formattedResponse = CosmosDBStatus.NotWorking
+            }else if(res.status === 401){
+                formattedResponse = CosmosDBStatus.InvalidCredentials    
+            }else if(res.status === 422){ 
+                formattedResponse = respJson.error    
             }else{
                 formattedResponse = CosmosDBStatus.NotConfigured
             }

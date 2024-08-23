@@ -1,15 +1,17 @@
 import { useRef, useState, useEffect, useContext, useLayoutEffect } from "react";
-import { CommandBarButton, IconButton, Dialog, DialogType, Stack } from "@fluentui/react";
-import { SquareRegular, ShieldLockRegular, ErrorCircleRegular } from "@fluentui/react-icons";
+import { CommandBarButton, IconButton, Dialog, DialogType, Stack, Dropdown, IDropdownOption } from "@fluentui/react";
+import { SquareRegular, ShieldLockRegular, ErrorCircleRegular, FilterDismiss16Regular } from "@fluentui/react-icons";
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from "rehype-raw";
 import uuid from 'react-uuid';
-import { isEmpty } from "lodash-es";
+import { isEmpty } from "lodash";
+import DOMPurify from 'dompurify';
 
 import styles from "./Chat.module.css";
 import ESB from "../../assets/ESB.svg";
+import { XSSAllowTags } from "../../constants/xssAllowTags";
 
 import {
     ChatMessage,
@@ -41,6 +43,7 @@ const enum messageStatus {
 
 const Chat = () => {
     const appStateContext = useContext(AppStateContext)
+    const ui = appStateContext?.state.frontendSettings?.ui;
     const AUTH_ENABLED = appStateContext?.state.frontendSettings?.auth_enabled;
     const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -54,6 +57,7 @@ const Chat = () => {
     const [clearingChat, setClearingChat] = useState<boolean>(false);
     const [hideErrorDialog, { toggle: toggleErrorDialog }] = useBoolean(true);
     const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>()
+    const [iframeState, setIframeState] = useState<number>(0);
 
     const errorDialogContentProps = {
         type: DialogType.close,
@@ -70,9 +74,13 @@ const Chat = () => {
     }
 
     const [ASSISTANT, TOOL, ERROR] = ["assistant", "tool", "error"]
+    const NO_CONTENT_ERROR = "No content in messages object."
 
     useEffect(() => {
-        if (appStateContext?.state.isCosmosDBAvailable?.status === CosmosDBStatus.NotWorking && appStateContext.state.chatHistoryLoadingState === ChatHistoryLoadingState.Fail && hideErrorDialog) {
+        if (appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.Working  
+            && appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured
+            && appStateContext?.state.chatHistoryLoadingState === ChatHistoryLoadingState.Fail 
+            && hideErrorDialog) {
             let subtitle = `${appStateContext.state.isCosmosDBAvailable.status}. Please contact the site administrator.`
             setErrorMsg({
                 title: "Chat history is not enabled",
@@ -116,6 +124,15 @@ const Chat = () => {
             assistantContent += resultMessage.content
             assistantMessage = resultMessage
             assistantMessage.content = assistantContent
+            
+            if (resultMessage.context) {
+                toolMessage = {
+                    id: uuid(),
+                    role: TOOL,
+                    content: resultMessage.context,
+                    date: new Date().toISOString(),
+                }
+            }
         }
 
         if (resultMessage.role === TOOL) toolMessage = resultMessage
@@ -141,7 +158,7 @@ const Chat = () => {
             id: uuid(),
             role: "user",
             content: question,
-            date: new Date().toISOString(),
+            date: new Date().toISOString()
         };
 
         let conversation: Conversation | null | undefined;
@@ -177,8 +194,8 @@ const Chat = () => {
             const response = await conversationApi(request, abortController.signal);
             if (response?.body) {
                 const reader = response.body.getReader();
-                let runningText = "";
 
+                let runningText = "";
                 while (true) {
                     setProcessMessages(messageStatus.Processing)
                     const { done, value } = await reader.read();
@@ -188,19 +205,35 @@ const Chat = () => {
                     const objects = text.split("\n");
                     objects.forEach((obj) => {
                         try {
-                            runningText += obj;
-                            result = JSON.parse(runningText);
-                            result.choices[0].messages.forEach((obj) => {
-                                obj.id = result.id;
-                                obj.date = new Date().toISOString();
-                            })
-                            setShowLoadingMessage(false);
-                            result.choices[0].messages.forEach((resultObj) => {
-                                processResultMessage(resultObj, userMessage, conversationId);
-                            })
-                            runningText = "";
+                            if (obj !== "" && obj !== "{}") {
+                                runningText += obj;
+                                result = JSON.parse(runningText);
+                                if (result.choices?.length > 0) {
+                                    result.choices[0].messages.forEach((msg) => {
+                                        msg.id = result.id;
+                                        msg.date = new Date().toISOString();
+                                    })
+                                    if (result.choices[0].messages?.some(m => m.role === ASSISTANT)) {
+                                        setShowLoadingMessage(false);
+                                    }
+                                    result.choices[0].messages.forEach((resultObj) => {
+                                        processResultMessage(resultObj, userMessage, conversationId);
+                                    })
+                                }
+                                else if (result.error) {
+                                    throw Error(result.error);
+                                }
+                                runningText = "";
+                            }
                         }
-                        catch { }
+                        catch (e) {
+                            if (!(e instanceof SyntaxError)) {
+                                console.error(e);
+                                throw e;
+                            } else {
+                                console.log("Incomplete message. Continuing...")
+                            }
+                        }
                     });
                 }
                 conversation.messages.push(toolMessage, assistantMessage)
@@ -249,9 +282,8 @@ const Chat = () => {
             id: uuid(),
             role: "user",
             content: question,
-            date: new Date().toISOString(),
+            date: new Date().toISOString()
         };
-
         //api call params set here (generate)
         let request: ConversationRequest;
         let conversation;
@@ -279,10 +311,12 @@ const Chat = () => {
         try {
             const response = conversationId ? await historyGenerate(request, abortController.signal, conversationId) : await historyGenerate(request, abortController.signal);
             if (!response?.ok) {
+                const responseJson = await response.json();
+                var errorResponseMessage = responseJson.error === undefined ? "Please try again. If the problem persists, please contact the site administrator." : responseJson.error;
                 let errorChatMsg: ChatMessage = {
                     id: uuid(),
                     role: ERROR,
-                    content: "There was an error generating a response. Chat history can't be saved at this time. If the problem persists, please contact the site administrator.",
+                    content: `There was an error generating a response. Chat history can't be saved at this time. ${errorResponseMessage}`,
                     date: new Date().toISOString()
                 }
                 let resultConversation;
@@ -309,8 +343,8 @@ const Chat = () => {
             }
             if (response?.body) {
                 const reader = response.body.getReader();
-                let runningText = "";
 
+                let runningText = "";
                 while (true) {
                     setProcessMessages(messageStatus.Processing)
                     const { done, value } = await reader.read();
@@ -320,19 +354,39 @@ const Chat = () => {
                     const objects = text.split("\n");
                     objects.forEach((obj) => {
                         try {
-                            runningText += obj;
-                            result = JSON.parse(runningText);
-                            result.choices[0].messages.forEach((obj) => {
-                                obj.id = result.id;
-                                obj.date = new Date().toISOString();
-                            })
-                            setShowLoadingMessage(false);
-                            result.choices[0].messages.forEach((resultObj) => {
-                                processResultMessage(resultObj, userMessage, conversationId);
-                            })
-                            runningText = "";
+                            if (obj !== "" && obj !== "{}") {
+                                runningText += obj;
+                                result = JSON.parse(runningText);
+                                if (!result.choices?.[0]?.messages?.[0].content) {
+                                    errorResponseMessage = NO_CONTENT_ERROR;
+                                    throw Error();
+                                }
+                                if (result.choices?.length > 0) {
+                                    result.choices[0].messages.forEach((msg) => {
+                                        msg.id = result.id;
+                                        msg.date = new Date().toISOString();
+                                    })
+                                    if (result.choices[0].messages?.some(m => m.role === ASSISTANT)) {
+                                        setShowLoadingMessage(false);
+                                    }
+                                    result.choices[0].messages.forEach((resultObj) => {
+                                        processResultMessage(resultObj, userMessage, conversationId);
+                                    })
+                                }
+                                runningText = "";
+                            }
+                            else if (result.error) {
+                                throw Error(result.error);
+                            }
                         }
-                        catch { }
+                        catch (e) {
+                            if (!(e instanceof SyntaxError)) {
+                                console.error(e);
+                                throw e;
+                            } else {
+                                console.log("Incomplete message. Continuing...")
+                            }
+                         }
                     });
                 }
 
@@ -374,7 +428,7 @@ const Chat = () => {
 
         } catch (e) {
             if (!abortController.signal.aborted) {
-                let errorMessage = "An error occurred. Please try again. If the problem persists, please contact the site administrator.";
+                let errorMessage = `An error occurred. ${errorResponseMessage}`;
                 if (result.error?.message) {
                     errorMessage = result.error.message;
                 }
@@ -401,6 +455,13 @@ const Chat = () => {
                 } else {
                     if (!result.history_metadata) {
                         console.error("Error retrieving data.", result);
+                        let errorChatMsg: ChatMessage = {
+                            id: uuid(),
+                            role: ERROR,
+                            content: errorMessage,
+                            date: new Date().toISOString()
+                        } 
+                        setMessages([...messages, userMessage, errorChatMsg])
                         setIsLoading(false);
                         setShowLoadingMessage(false);
                         abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
@@ -470,6 +531,10 @@ const Chat = () => {
         setShowLoadingMessage(false);
         setIsLoading(false);
     }
+    
+    const iframeRefresh = () => {
+        setIframeState(iframeState+1);
+    }
 
     useEffect(() => {
         if (appStateContext?.state.currentChat) {
@@ -491,6 +556,9 @@ const Chat = () => {
                     console.error("Failure fetching current chat state.")
                     return
                 }
+                const noContentError = appStateContext.state.currentChat.messages.find(m => m.role === ERROR)
+                
+                if (!noContentError?.content.includes(NO_CONTENT_ERROR)) {
                 saveToDB(appStateContext.state.currentChat.messages, appStateContext.state.currentChat.id)
                     .then((res) => {
                         if (!res.ok) {
@@ -521,6 +589,7 @@ const Chat = () => {
                         }
                         return errRes;
                     })
+                }
             } else {
             }
             appStateContext?.dispatch({ type: 'UPDATE_CHAT_HISTORY', payload: appStateContext.state.currentChat });
@@ -540,11 +609,12 @@ const Chat = () => {
     const onShowCitation = (citation: Citation) => {
         setActiveCitation(citation);
         setIsCitationPanelOpen(true);
+        iframeRefresh();
     };
 
     const onViewSource = (citation: Citation) => {
-        if (citation.url && !citation.url.includes("blob.core")) {
-            window.open(citation.url, "_blank");
+        if (citation.url) {
+            window.open(citation.url+"#page="+citation.page, "_blank");
         }
     };
 
@@ -572,10 +642,8 @@ const Chat = () => {
                     <ShieldLockRegular className={styles.chatIcon} style={{ color: 'darkorange', height: "200px", width: "200px" }} />
                     <h1 className={styles.chatEmptyStateTitle}>Authentication Not Configured</h1>
                     <h2 className={styles.chatEmptyStateSubtitle}>
-                        This app does not have authentication configured. Please add an identity provider by finding your app in the
-                        <a href="https://portal.azure.com/" target="_blank"> Azure Portal </a>
-                        and following
-                        <a href="https://learn.microsoft.com/en-us/azure/app-service/scenario-secure-app-authentication-app-service#3-configure-authentication-and-authorization" target="_blank"> these instructions</a>.
+                    This app does not have authentication configured. Please add an identity provider by finding your app in the <a href="https://portal.azure.com/" target="_blank">Azure Portal</a> 
+                        and following <a href="https://learn.microsoft.com/en-us/azure/app-service/scenario-secure-app-authentication-app-service#3-configure-authentication-and-authorization" target="_blank">these instructions</a>.
                     </h2>
                     <h2 className={styles.chatEmptyStateSubtitle} style={{ fontSize: "20px" }}><strong>Authentication configuration takes a few minutes to apply. </strong></h2>
                     <h2 className={styles.chatEmptyStateSubtitle} style={{ fontSize: "20px" }}><strong>If you deployed in the last 10 minutes, please wait and reload the page after 10 minutes.</strong></h2>
@@ -586,12 +654,12 @@ const Chat = () => {
                         {!messages || messages.length < 1 ? (
                             <Stack className={styles.chatEmptyState}>
                                 <img
-                                    src={ESB}
+                                    src={ui?.chat_logo ? ui.chat_logo : ESB}
                                     className={styles.chatIcon}
                                     aria-hidden="true"
                                 />
-                                <h1 className={styles.chatEmptyStateTitle}>Start chatting</h1>
-                                <h2 className={styles.chatEmptyStateSubtitle}>Hi, I’m EOLAS, and I’m here to assist you with services for your day-to-day life at ESB. Ask me anything on Employee Benefits, Money & Expenses, Career, Attendance & Leave, IT Support, Facilities Management or Buying goods and services.</h2>
+                                <h1 className={styles.chatEmptyStateTitle}>{ui?.chat_title}</h1>
+                                <h2 className={styles.chatEmptyStateSubtitle}>{ui?.chat_description}</h2>
                             </Stack>
                         ) : (
                             <div className={styles.chatMessageStream} style={{ marginBottom: isLoading ? "40px" : "0px" }} role="log">
@@ -654,7 +722,41 @@ const Chat = () => {
                                     <span className={styles.stopGeneratingText} aria-hidden="true">Stop generating</span>
                                 </Stack>
                             )}
-
+                            <Stack>
+                                {/* {appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured &&  */}
+                                <CommandBarButton
+                                    role="button"
+                                    styles={{
+                                        icon: {
+                                            color: '#FFFFFF',
+                                        },
+                                        iconDisabled: {
+                                            color: "#BDBDBD !important"
+                                        },
+                                        root: {
+                                            color: '#FFFFFF',
+                                            background: '#009FDA'
+                                            // background: "radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%)"
+                                        },
+                                        rootDisabled: {
+                                            background: "#F0F0F0"
+                                        }
+                                    }}
+                                    className={styles.newChatIcon}
+                                    iconProps={{ iconName: 'Add' }}
+                                    onClick={newChat}
+                                    disabled={disabledButton()}
+                                    aria-label="start a new chat button"
+                                /> 
+                                {/* } */}
+                                <Dialog
+                                    hidden={hideErrorDialog}
+                                    onDismiss={handleErrorDialogClose}
+                                    dialogContentProps={errorDialogContentProps}
+                                    modalProps={modalProps}
+                                >
+                                </Dialog>
+                            </Stack>
                             <QuestionInput
                                 clearOnSend
                                 placeholder="Type a new question..."
@@ -673,16 +775,17 @@ const Chat = () => {
                                 <span aria-label="Citations" className={styles.citationPanelHeader}>Citations</span>
                                 <IconButton iconProps={{ iconName: 'Cancel' }} aria-label="Close citations panel" onClick={() => setIsCitationPanelOpen(false)} />
                             </Stack>
-                            <h5 className={styles.citationPanelTitle} tabIndex={0} title={activeCitation.url && !activeCitation.url.includes("blob.core") ? activeCitation.url : activeCitation.title ?? ""} onClick={() => onViewSource(activeCitation)}>{activeCitation.title}</h5>
-                            <div tabIndex={0}>
+                            <h5 className={styles.citationPanelTitle} tabIndex={0} title={activeCitation.url ? activeCitation.url : activeCitation.title ?? ""} onClick={() => onViewSource(activeCitation)}>{activeCitation.title}</h5>
+                            <iframe key={iframeState} src={activeCitation.url+"#page="+activeCitation.page} width="100%" height="100%"></iframe>
+                            {/* <div tabIndex={0}>
                                 <ReactMarkdown
                                     linkTarget="_blank"
                                     className={styles.citationPanelContent}
-                                    children={activeCitation.content}
+                                    children={DOMPurify.sanitize(activeCitation.content, {ALLOWED_TAGS: XSSAllowTags})}
                                     remarkPlugins={[remarkGfm]}
                                     rehypePlugins={[rehypeRaw]}
                                 />
-                            </div>
+                            </div> */}
                         </Stack.Item>
                     )}
                     {(appStateContext?.state.isChatHistoryOpen && appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured) && <ChatHistoryPanel />}
