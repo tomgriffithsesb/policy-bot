@@ -288,7 +288,7 @@ def get_category_data(url):
     return categories, subcategories
 
 def get_query_category(prompt, client, model, message):
-    completion = client.chat.completions.create(\
+    completion = client.chat.completions.create(
         model=model,
         messages=[
             {
@@ -307,7 +307,13 @@ def get_query_category(prompt, client, model, message):
         presence_penalty=0,
         stop=None
     )
-    result = completion.choices[0].message.content.split(', ',2)
-    category = result[0].split('Category: ',1)[1].replace('.','')
-    subcategory = result[1].split('Subcategory: ',1)[1].replace('.','')
+
+    try:
+        result = completion.choices[0].message.content.split(', ',2)
+        category = result[0].split('Category: ',1)[1].replace('.','')
+        subcategory = result[1].split('Subcategory: ',1)[1].replace('.','')
+    except:
+        category = 'Category: Other'
+        subcategory = 'Subcategory: Other'
+
     return category, subcategory
