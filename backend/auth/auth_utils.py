@@ -25,14 +25,20 @@ def get_authenticated_user_details(request_headers):
     return user_object
 
 def get_access_token():
-    tenantID = os.environ.get("TENANT_ID")
-    authority = 'https://login.microsoftonline.com/' + tenantID
-    clientID = os.environ.get("CLIENT_ID")
-    clientSecret = os.environ.get("CLIENT_SECRET")
-    scope = ['https://graph.microsoft.com/.default']
-    app = msal.ConfidentialClientApplication(clientID, authority=authority, client_credential = clientSecret)
-    access_token = app.acquire_token_for_client(scopes=scope)
-    return access_token
+    try:
+        tenantID = os.environ.get("TENANT_ID")
+        authority = 'https://login.microsoftonline.com/' + tenantID
+        clientID = os.environ.get("CLIENT_ID")
+        clientSecret = os.environ.get("CLIENT_SECRET")
+        scope = ['https://graph.microsoft.com/.default']
+        app = msal.ConfidentialClientApplication(clientID, authority=authority, client_credential = clientSecret)
+        access_token = app.acquire_token_for_client(scopes=scope)
+        token = access_token['access_token']
+    except:
+        logging.error("Error getting access token.")
+        token = []
+        
+        return token
 
 def get_user_business_unit(token):
     endpoint = "https://graph.microsoft.com/v1.0/me?$select=companyName"

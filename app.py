@@ -933,9 +933,6 @@ categories_prompt = CATEGORIES_PROMPT.format(categories=categories,subcategories
 async def add_conversation():
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user["user_principal_id"]
-    # Get Graph access token
-    access_token = get_access_token()
-    token = access_token['access_token']
 
     ## check request for conversation_id
     request_json = await request.get_json()
@@ -964,13 +961,14 @@ async def add_conversation():
         cat_and_subcat = get_query_category(prompt=categories_prompt, client=client, model=AZURE_OPENAI_MODEL, message=messages[-1]['content'])
         category, subcategory = cat_and_subcat[0], cat_and_subcat[1]
         if len(messages) > 0 and messages[-1]["role"] == "user":
+            token = get_access_token()
             createdMessageValue = await cosmos_conversation_client.create_message(
                 uuid=str(uuid.uuid4()),
                 conversation_id=conversation_id,
                 user_id=user_id,
                 input_message=messages[-1],
                 category = category,
-                subcategory = subcategory, 
+                subcategory = subcategory,
                 businessunit = get_user_business_unit(token)
             )
             if createdMessageValue == "Conversation not found":
