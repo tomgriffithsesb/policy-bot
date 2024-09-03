@@ -47,10 +47,10 @@ def getUserBusinessUnit(userToken):
     headers = {"Authorization": "Bearer " + userToken}
     try:
         r = requests.get(endpoint, headers=headers)
+        logging.info("Business Unit request:",r.json())
         if r.status_code != 200:
             logging.error(f"Error fetching user's business unit: {r.status_code} {r.text}")
             return []
-        logging.info("Business Unit request:",r.json())
         return r.json()['companyName']
     
     except Exception as e:
