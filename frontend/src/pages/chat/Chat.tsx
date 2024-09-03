@@ -51,7 +51,7 @@ const Chat = () => {
     const [activeCitation, setActiveCitation] = useState<Citation>();
     const [isCitationPanelOpen, setIsCitationPanelOpen] = useState<boolean>(false);
     const abortFuncs = useRef([] as AbortController[]);
-    const [showAuthMessage, setShowAuthMessage] = useState<boolean>(true);
+    const [showAuthMessage, setShowAuthMessage] = useState<boolean | undefined>();
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [processMessages, setProcessMessages] = useState<messageStatus>(messageStatus.NotRunning);
     const [clearingChat, setClearingChat] = useState<boolean>(false);
@@ -523,7 +523,7 @@ const Chat = () => {
         setIsCitationPanelOpen(false);
         setActiveCitation(undefined);
         appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: null });
-        setProcessMessages(messageStatus.Done)
+        setProcessMessages(messageStatus.NotRunning)
     };
 
     const stopGenerating = () => {
@@ -549,15 +549,13 @@ const Chat = () => {
             const response = await historyUpdate(messages, id)
             return response
         }
-
         if (appStateContext && appStateContext.state.currentChat && processMessages === messageStatus.Done) {
             if (appStateContext.state.isCosmosDBAvailable.cosmosDB) {
                 if (!appStateContext?.state.currentChat?.messages) {
                     console.error("Failure fetching current chat state.")
                     return
                 }
-                const noContentError = appStateContext.state.currentChat.messages.find(m => m.role === ERROR)
-                
+                const noContentError = appStateContext.state.currentChat.messages.find(m => m.role === ERROR)       
                 if (!noContentError?.content.includes(NO_CONTENT_ERROR)) {
                 saveToDB(appStateContext.state.currentChat.messages, appStateContext.state.currentChat.id)
                     .then((res) => {
@@ -723,7 +721,7 @@ const Chat = () => {
                                 </Stack>
                             )}
                             <Stack>
-                                {/* {appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured &&  */}
+                                {appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured && 
                                 <CommandBarButton
                                     role="button"
                                     styles={{
@@ -731,14 +729,14 @@ const Chat = () => {
                                             color: '#FFFFFF',
                                         },
                                         iconDisabled: {
-                                            color: "#BDBDBD !important"
+                                            color: "#8795a2 !important"
                                         },
                                         root: {
                                             color: '#FFFFFF',
-                                            background: '#009FDA'
-                                            // background: "radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%)"
+                                            background: '#009fdf'
                                         },
                                         rootDisabled: {
+                                            color: '#009fdf',
                                             background: "#F0F0F0"
                                         }
                                     }}
@@ -748,7 +746,7 @@ const Chat = () => {
                                     disabled={disabledButton()}
                                     aria-label="start a new chat button"
                                 /> 
-                                {/* } */}
+                                }
                                 <Dialog
                                     hidden={hideErrorDialog}
                                     onDismiss={handleErrorDialogClose}
