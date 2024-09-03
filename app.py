@@ -6,6 +6,7 @@ import uuid
 from itertools import combinations
 from dotenv import load_dotenv
 import httpx
+import msal
 from openai import AzureOpenAI
 from quart import (
     Blueprint,
@@ -20,7 +21,11 @@ from quart import (
 from azure.identity import DefaultAzureCredential
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
-from backend.auth.auth_utils import get_authenticated_user_details
+from backend.auth.auth_utils import (
+    get_authenticated_user_details, 
+    get_access_token,
+    get_user_business_unit
+)
 from backend.history.cosmosdbservice import CosmosConversationClient
 
 from backend.utils import (
@@ -32,7 +37,6 @@ from backend.utils import (
     format_non_streaming_response,
     convert_to_pf_format,
     format_pf_non_streaming_response,
-    getUserBusinessUnit,
     get_category_data,
     get_query_category
 )
@@ -929,7 +933,9 @@ categories_prompt = CATEGORIES_PROMPT.format(categories=categories,subcategories
 async def add_conversation():
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user["user_principal_id"]
-    user_auth_token = authenticated_user["auth_token"]
+    # Get Graph access token
+    access_token = get_access_token()
+    token = access_token['access_token']
 
     ## check request for conversation_id
     request_json = await request.get_json()
@@ -965,7 +971,7 @@ async def add_conversation():
                 input_message=messages[-1],
                 category = category,
                 subcategory = subcategory, 
-                businessunit = getUserBusinessUnit(user_auth_token)
+                businessunit = get_user_business_unit(token)
             )
             if createdMessageValue == "Conversation not found":
                 raise Exception(

@@ -42,21 +42,6 @@ def parse_multi_columns(columns: str) -> list:
     else:
         return columns.split(",")
 
-def getUserBusinessUnit(userToken):
-    endpoint = "https://graph.microsoft.com/v1.0/me?$select=companyName"
-    headers = {"Authorization": "Bearer " + userToken}
-    try:
-        r = requests.get(endpoint, headers=headers)
-        if r.status_code != 200:
-            logging.error(f"Error fetching user's business unit: {r.status_code} {r.text}")
-            return []
-        print("Business Unit request:",r.json())
-        return r.json()['companyName']
-    
-    except Exception as e:
-        logging.error(f"Exception in getUserBusinessUnit: {e}")
-        return []
-
 def fetchUserGroups(userToken, nextLink=None):
     # Recursively fetch group membership
     if nextLink:
@@ -80,7 +65,6 @@ def fetchUserGroups(userToken, nextLink=None):
     except Exception as e:
         logging.error(f"Exception in fetchUserGroups: {e}")
         return []
-
 
 def generateFilterString(userToken):
     # Get list of groups user is a member of
@@ -288,7 +272,7 @@ def get_category_data(url):
     return categories, subcategories
 
 def get_query_category(prompt, client, model, message):
-    completion = client.chat.completions.create(\
+    completion = client.chat.completions.create(
         model=model,
         messages=[
             {
@@ -307,7 +291,13 @@ def get_query_category(prompt, client, model, message):
         presence_penalty=0,
         stop=None
     )
-    result = completion.choices[0].message.content.split(', ',2)
-    category = result[0].split('Category: ',1)[1].replace('.','')
-    subcategory = result[1].split('Subcategory: ',1)[1].replace('.','')
+
+    try:
+        result = completion.choices[0].message.content.split(', ',2)
+        category = result[0].split('Category: ',1)[1].replace('.','')
+        subcategory = result[1].split('Subcategory: ',1)[1].replace('.','')
+    except:
+        category = 'Category: Other'
+        subcategory = 'Subcategory: Other'
+
     return category, subcategory
