@@ -6,6 +6,8 @@ import uuid
 from itertools import combinations
 from dotenv import load_dotenv
 import httpx
+import msal
+import requests
 from openai import AzureOpenAI
 from quart import (
     Blueprint,
@@ -16,13 +18,15 @@ from quart import (
     send_from_directory,
     render_template,
 )
-
 from azure.identity import DefaultAzureCredential
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
-from backend.auth.auth_utils import get_authenticated_user_details
+from backend.auth.auth_utils import (
+    get_authenticated_user_details, 
+    get_access_token,
+    get_user_business_unit
+)
 from backend.history.cosmosdbservice import CosmosConversationClient
-
 from backend.utils import (
     format_as_ndjson,
     format_stream_response,
@@ -956,13 +960,15 @@ async def add_conversation():
         cat_and_subcat = get_query_category(prompt=categories_prompt, client=client, model=AZURE_OPENAI_MODEL, message=messages[-1]['content'])
         category, subcategory = cat_and_subcat[0], cat_and_subcat[1]
         if len(messages) > 0 and messages[-1]["role"] == "user":
+            token = get_access_token()
             createdMessageValue = await cosmos_conversation_client.create_message(
                 uuid=str(uuid.uuid4()),
                 conversation_id=conversation_id,
                 user_id=user_id,
                 input_message=messages[-1],
                 category = category,
-                subcategory = subcategory, 
+                subcategory = subcategory,
+                businessunit = get_user_business_unit(token)
             )
             if createdMessageValue == "Conversation not found":
                 raise Exception(
