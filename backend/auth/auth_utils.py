@@ -43,7 +43,7 @@ def get_access_token():
 def get_user_business_unit(token):
     endpoint = "https://graph.microsoft.com/v1.0/me?$select=companyName"
     headers = {
-    "Authorization": f"Bearer{token}",
+    "Authorization": f"Bearer {token}",
     "Content-Type": "application/json"
     }
 
