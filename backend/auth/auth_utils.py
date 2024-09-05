@@ -24,7 +24,7 @@ def get_authenticated_user_details(request_headers):
 
     return user_object
 
-def get_user_business_unit():
+def get_user_business_unit(user_id):
     try:
         tenantID = os.environ.get("TENANT_ID")
         authority = 'https://login.microsoftonline.com/' + tenantID
@@ -35,7 +35,7 @@ def get_user_business_unit():
         access_token = app.acquire_token_for_client(scopes=scope)
         token = access_token['access_token']
         
-        endpoint = "https://graph.microsoft.com/v1.0/me?$select=companyName"
+        endpoint = "https://graph.microsoft.com/v1.0/users/"+user_id+"?$select=companyName"
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
