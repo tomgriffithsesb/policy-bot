@@ -24,7 +24,7 @@ def get_authenticated_user_details(request_headers):
 
     return user_object
 
-def get_access_token():
+def get_user_business_unit():
     try:
         tenantID = os.environ.get("TENANT_ID")
         authority = 'https://login.microsoftonline.com/' + tenantID
@@ -34,28 +34,23 @@ def get_access_token():
         app = msal.ConfidentialClientApplication(clientID, authority=authority, client_credential = clientSecret)
         access_token = app.acquire_token_for_client(scopes=scope)
         token = access_token['access_token']
-        logging.info('Access token from function: '+token)
+        
+        endpoint = "https://graph.microsoft.com/v1.0/me?$select=companyName"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            r = requests.get(endpoint, headers=headers)
+            if r.status_code != 200:
+                logging.error(f"Error fetching user's business unit: {r.status_code} {r.text}")
+                return []
+            return r.json()['companyName']
+
+        except Exception as e:
+            logging.error(f"Exception in getUserBusinessUnit: {e}")
+            return []
     except:
         logging.error("Error getting access token.")
-        token = []
-
-        return token
-
-def get_user_business_unit(token):
-    endpoint = "https://graph.microsoft.com/v1.0/me?$select=companyName"
-    headers = {
-    "Authorization": f"Bearer {token}",
-    "Content-Type": "application/json"
-    }
-
-    try:
-        r = requests.get(endpoint, headers=headers)
-        if r.status_code != 200:
-            logging.error(f"Error fetching user's business unit: {r.status_code} {r.text}")
-            logging.info(headers)
-            return []
-        return r.json()['companyName']
-
-    except Exception as e:
-        logging.error(f"Exception in getUserBusinessUnit: {e}")
         return []
