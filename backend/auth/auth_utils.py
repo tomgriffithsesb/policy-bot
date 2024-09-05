@@ -34,6 +34,7 @@ def get_access_token():
         app = msal.ConfidentialClientApplication(clientID, authority=authority, client_credential = clientSecret)
         access_token = app.acquire_token_for_client(scopes=scope)
         token = access_token['access_token']
+        logging.info('Access token from function: '+token)
     except:
         logging.error("Error getting access token.")
         token = []

@@ -961,6 +961,8 @@ async def add_conversation():
         category, subcategory = cat_and_subcat[0], cat_and_subcat[1]
         if len(messages) > 0 and messages[-1]["role"] == "user":
             token = get_access_token()
+            logging.info("Access token from app.py: "+token)
+            businessunit = get_user_business_unit(token)
             createdMessageValue = await cosmos_conversation_client.create_message(
                 uuid=str(uuid.uuid4()),
                 conversation_id=conversation_id,
@@ -968,7 +970,7 @@ async def add_conversation():
                 input_message=messages[-1],
                 category = category,
                 subcategory = subcategory,
-                businessunit = get_user_business_unit(token)
+                businessunit=businessunit
             )
             if createdMessageValue == "Conversation not found":
                 raise Exception(
