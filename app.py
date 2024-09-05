@@ -22,8 +22,7 @@ from azure.identity import DefaultAzureCredential
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
 from backend.auth.auth_utils import (
-    get_authenticated_user_details, 
-    get_access_token,
+    get_authenticated_user_details,
     get_user_business_unit
 )
 from backend.history.cosmosdbservice import CosmosConversationClient
