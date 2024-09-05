@@ -51,6 +51,7 @@ def get_user_business_unit(token):
         r = requests.get(endpoint, headers=headers)
         if r.status_code != 200:
             logging.error(f"Error fetching user's business unit: {r.status_code} {r.text}")
+            logging.info(headers)
             return []
         return r.json()['companyName']
 
