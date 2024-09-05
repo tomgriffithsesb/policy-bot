@@ -34,7 +34,6 @@ def get_access_token():
         app = msal.ConfidentialClientApplication(clientID, authority=authority, client_credential = clientSecret)
         access_token = app.acquire_token_for_client(scopes=scope)
         token = access_token['access_token']
-        logging.info("Access token: ",token)
     except:
         logging.error("Error getting access token.")
         token = []
@@ -44,7 +43,7 @@ def get_access_token():
 def get_user_business_unit(token):
     endpoint = "https://graph.microsoft.com/v1.0/me?$select=companyName"
     headers = {
-    "Authorization": f"Bearer {token}",
+    "Authorization": f"Bearer{token}",
     "Content-Type": "application/json"
     }
 
