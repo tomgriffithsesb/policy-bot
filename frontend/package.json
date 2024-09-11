@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "he":"^1.2.0",
     "@fluentui/react": "^8.105.3",
     "@fluentui/react-hooks": "^8.6.29",
     "@fluentui/react-icons": "^2.0.195",
@@ -27,6 +28,7 @@
     "remark-supersub": "^1.0.0"
   },
   "devDependencies": {
+    "@types/he":"^1.2.0",
     "@types/dompurify": "^3.0.5",
     "@types/jest": "^29.5.12",
     "@types/lodash-es": "^4.17.12",

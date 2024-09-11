@@ -136,7 +136,7 @@ def preprocess_response(content,no_data_response):
     Preprocessing of bot response before it is returned. Following preprocessing is performed:
     - Rewrite message returned when AI Search is unable to find data
     '''
-    content = content.replace("The requested information is not found in the retrieved data. Please try another query or topic.",no_data_response)
+    content = content.replace("The requested information is not found in the retrieved data. Please try another query or topic.",no_data_response).replace(r"\u20ac","€")
     return content
 
 def format_non_streaming_response(chatCompletion, history_metadata, apim_request_id):
