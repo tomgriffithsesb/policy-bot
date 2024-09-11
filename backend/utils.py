@@ -19,6 +19,7 @@ AZURE_SEARCH_PERMITTED_GROUPS_COLUMN = os.environ.get(
 
 BLOB_CREDENTIAL = os.environ.get("BLOB_CREDENTIAL")
 BLOB_ACCOUNT = os.environ.get("BLOB_ACCOUNT")
+NO_DATA_FOUND_RESPONSE = os.environ.get("NO_DATA_FOUND_RESPONSE")
 
 class JSONEncoder(json.JSONEncoder):
     def default(self, o):
@@ -130,6 +131,15 @@ def remove_SAS_from_image_link(content):
     replaced_text = re.sub(pattern, url_replacer, content)
     return replaced_text
 
+def preprocess_response(content,no_data_response):
+    '''
+    Preprocessing of bot response before it is returned. Following preprocessing is performed:
+    - Convert unicode Euro symbols to the correct format
+    - Rewrite message returned when AI Search is unable to find data
+    '''
+    content.replace("The requested information is not found in the retrieved data. Please try another query or topic.",no_data_response).replace("\u20ac","€")
+    return content
+
 def format_non_streaming_response(chatCompletion, history_metadata, apim_request_id):
     response_obj = {
         "id": chatCompletion.id,
@@ -157,7 +167,7 @@ def format_non_streaming_response(chatCompletion, history_metadata, apim_request
             response_obj["choices"][0]["messages"].append(
                 {
                     "role": "assistant",
-                    "content": append_SAS_to_image_link(message.content),
+                    "content": preprocess_response(message.content,NO_DATA_FOUND_RESPONSE)
                 }
             )
             return response_obj
@@ -264,6 +274,9 @@ def convert_to_pf_format(input_json, request_field_name, response_field_name):
     return output_json
 
 def get_category_data(url):
+    '''
+    Read in data required to categorise queries from Excel file in Blob storage
+    '''
     new_url = url+"?"+generate_SAS(url)
     categories_df = pd.read_excel(new_url,'CategoryMapping')
     examples_df = pd.read_excel(new_url,'Examples')
@@ -273,6 +286,9 @@ def get_category_data(url):
     return categories, subcategories
 
 def get_query_category(prompt, client, model, message):
+    '''
+    Categorise user input based on categories and subcategories read in
+    '''
     completion = client.chat.completions.create(
         model=model,
         messages=[
@@ -298,7 +314,7 @@ def get_query_category(prompt, client, model, message):
         category = result[0].split('Category: ',1)[1].replace('.','')
         subcategory = result[1].split('Subcategory: ',1)[1].replace('.','')
     except:
-        category = 'Category: Other'
-        subcategory = 'Subcategory: Other'
+        category = 'Other'
+        subcategory = 'Other'
 
     return category, subcategory

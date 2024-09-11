@@ -63,6 +63,7 @@ BLOB_ACCOUNT = os.environ.get("BLOB_ACCOUNT")
 BLOB_CONTAINER = os.environ.get("BLOB_CONTAINER")
 CATEGORIES_DATA_FILEPATH = os.environ.get("CATEGORIES_DATA_FILEPATH")
 CATEGORIES_PROMPT = os.environ.get("CATEGORIES_PROMPT")
+NO_DATA_FOUND_RESPONSE = os.environ.get("NO_DATA_FOUND_RESPONSE")
 
 # On Your Data Settings
 DATASOURCE_TYPE = os.environ.get("DATASOURCE_TYPE", "AzureCognitiveSearch")
