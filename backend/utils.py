@@ -134,11 +134,9 @@ def remove_SAS_from_image_link(content):
 def preprocess_response(content,no_data_response):
     '''
     Preprocessing of bot response before it is returned. Following preprocessing is performed:
-    - Convert unicode Euro symbols to the correct format
     - Rewrite message returned when AI Search is unable to find data
     '''
-    replacers = {"The requested information is not found in the retrieved data. Please try another query or topic.":no_data_response,r"\u20ac":"€"}
-    content = content.replace(replacers)
+    content = content.replace("The requested information is not found in the retrieved data. Please try another query or topic.",no_data_response)
     return content
 
 def format_non_streaming_response(chatCompletion, history_metadata, apim_request_id):
