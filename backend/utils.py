@@ -137,7 +137,8 @@ def preprocess_response(content,no_data_response):
     - Convert unicode Euro symbols to the correct format
     - Rewrite message returned when AI Search is unable to find data
     '''
-    content = content.replace("The requested information is not found in the retrieved data. Please try another query or topic.",no_data_response).replace("\\u20ac","€")
+    replacers = {"The requested information is not found in the retrieved data. Please try another query or topic.":no_data_response,r"\u20ac":"€"}
+    content = content.replace(replacers)
     return content
 
 def format_non_streaming_response(chatCompletion, history_metadata, apim_request_id):
