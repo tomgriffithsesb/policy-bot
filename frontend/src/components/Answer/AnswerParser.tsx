@@ -1,6 +1,6 @@
 import { AskResponse, Citation } from "../../api";
 import { cloneDeep } from "lodash";
-
+import he from 'he';
 
 export type ParsedAnswer = {
     citations: Citation[];
@@ -36,6 +36,8 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
         if (!filteredCitations.find((c) => c.id === citationIndex) && citation) {
             answerText = answerText.replaceAll(link, ` ^${++citationReindex}^ `);
             citation.id = citationIndex;
+            let oldTitle = citation.title || "Default Title";
+            citation.title = he.decode(oldTitle);
             citation.reindex_id = citationReindex.toString();
             let content = citation.content.split("\n")
             citation.content = content[0]
