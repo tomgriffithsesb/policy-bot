@@ -161,7 +161,7 @@ export const Answer = ({
                 <Checkbox label="I didn't get my answer" id={Feedback.DidntGetAnswer} defaultChecked={negativeFeedbackList.includes(Feedback.DidntGetAnswer)} onChange={updateFeedbackList}></Checkbox>
                 <Checkbox label="Other" id={Feedback.OtherUnhelpful} defaultChecked={negativeFeedbackList.includes(Feedback.OtherUnhelpful)} onChange={updateFeedbackList}></Checkbox>
             </Stack>
-            <div onClick={() => setShowReportInappropriateFeedback(true)} style={{ color: "#115EA3", cursor: "pointer"}}>Report inappropriate content</div>
+            <div tabIndex={0} onClick={() => setShowReportInappropriateFeedback(true)} style={{ color: "#115EA3", cursor: "pointer" }}>Report inappropriate content</div>
         </>);
     }
 
