@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import logging
+import traceback
 import uuid
 from itertools import combinations
 from dotenv import load_dotenv
@@ -47,7 +48,7 @@ MINIMUM_SUPPORTED_AZURE_OPENAI_PREVIEW_API_VERSION = "2024-02-15-preview"
 load_dotenv()
 
 # UI configuration (optional)
-UI_TITLE = os.environ.get("UI_TITLE") or "Contoso"
+UI_TITLE = os.environ.get("UI_TITLE")
 UI_LOGO = os.environ.get("UI_LOGO")
 UI_CHAT_LOGO = os.environ.get("UI_CHAT_LOGO")
 UI_CHAT_TITLE = os.environ.get("UI_CHAT_TITLE") or "Start chatting"
@@ -792,7 +793,7 @@ def prepare_model_args(request_body):
 
     return model_args
 
-def getPage(midpoint_offset, page_list):
+def calculate_page_number(midpoint_offset, page_list):
     for page in page_list:
         if page["Start"] <= midpoint_offset <= page["End"]:
             return page["Page"]
@@ -1417,16 +1418,15 @@ async def generate_title(conversation_messages):
     except Exception as e:
         return messages[-2]["content"]
 
-@bp.route("/skillset/page", methods=["POST"])
-async def add_page():
+@bp.route("/skillset/get_page_number", methods=["POST"]) 
+async def get_page_number():
     try:
         request_json = await request.get_json()
         values = request_json.get("values", None)
         array = []
-        id = 0
         for item in values:
-            offsets = item["data"]["offsets"]
-            pages = item["data"]["pages"]
+            offsets = item["data"]["offsets"] # offsets from the Merge Skill
+            pages = item["data"]["pages"] # chunks from the Split Skill
             page_list = []
             previous_offset = 0
             index = 0
@@ -1435,30 +1435,40 @@ async def add_page():
                 midpoint = (previous_offset + offset) // 2  # Calculate the midpoint
                 page_list.append({"Page": index, "Start": previous_offset + 1, "End": offset, "Midpoint": midpoint})
                 previous_offset = offset
-
-            pageNumbers = []
+ 
+            chunks = []
             total_offset = 0
-            for text in pages:
-                midpoint_offset = total_offset + (len(text) - 500) // 2  # Calculate the midpoint for the current page
-                pageNumbers.append(getPage(midpoint_offset, page_list))  # Use the midpoint to get the page number
-                total_offset += len(text) - 500
-
+            for i, text in enumerate(pages):
+                if i == 0:
+                    midpoint_offset = total_offset + (len(text)) // 2  # Calculate the midpoint for the current page
+                    total_offset += len(text)
+                else:
+                    midpoint_offset = total_offset + (len(text) - 500) // 2  # Calculate the midpoint for the current page
+                    total_offset += len(text) - 500
+                chunks.append({"text":text, "page_number":calculate_page_number(midpoint_offset, page_list)})  # Use the midpoint to get the page number
+ 
             output={
-                "recordId": id,
+                "recordId": item['recordId'],
                 "data": {
-                    "pageNumber": pageNumbers
+                    "chunks": chunks
                 },
                 "errors": None,
                 "warnings": None
             }
-            id+=1
             array.append(output)
         response = jsonify({"values":array})
         return response, 200  # Status code should be 200 for success
-
+ 
     except Exception as e:
-        logging.exception("Exception in /skillset/page")
-        exception = str(e)
-        return jsonify({"error": exception}), 500
+        # Capture the traceback
+        tb = traceback.format_exc()
+        # Log the traceback along with the exception message
+        logging.exception(f"Unexpected exception in /skillset/get_page_number: {str(e)}\n{tb}")
+        # Return the traceback information in the response
+        return jsonify({
+            "error": "Unexpected error in /skillset/get_page_number",
+            "exception": str(e),
+            "traceback": tb
+        }), 500
 
 app = create_app()
