@@ -25,15 +25,18 @@
   
   .historyButtonRoot {
     width: 180px;
-    border: 1px solid #f2f2f2;
+    border: 1px solid #d3d3d3;
+    border-radius: 8px;
   }
 
   .historyButtonRoot:hover {
-    border: 1px solid #f2f2f2;
+    border: 1.5px solid black;
+    border-radius: 8px;
   }
 
   .historyButtonRoot:active {
-    border: 1px solid #f2f2f2;
+    border: 1.5px solid black;
+    border-radius: 8px;
   }
 
   @media (max-width: 480px) {

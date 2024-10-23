@@ -5,6 +5,7 @@ import styles from './Button.module.css';
 interface ButtonProps extends IButtonProps {
   onClick: () => void;
   text: string | undefined;
+  ariaExpanded?: boolean;
 }
 
 export const ShareButton: React.FC<ButtonProps> = ({ onClick, text }) => {
@@ -19,13 +20,14 @@ export const ShareButton: React.FC<ButtonProps> = ({ onClick, text }) => {
   )
 }
 
-export const HistoryButton: React.FC<ButtonProps> = ({ onClick, text }) => {
+export const HistoryButton: React.FC<ButtonProps> = ({ onClick, text, ariaExpanded }) => {
   return (
     <DefaultButton
       className={styles.historyButtonRoot}
       text={text}
       iconProps={{ iconName: 'History' }}
       onClick={onClick}
+      aria-expanded={ariaExpanded !== undefined ? ariaExpanded : undefined} // Conditionally add aria-expanded
     />
   )
 }

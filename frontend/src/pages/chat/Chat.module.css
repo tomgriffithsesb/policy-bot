@@ -9,9 +9,9 @@
     flex: 1;
     display: flex;
     margin-top: 0px;
-    margin-bottom: 20px;
-    margin-left: 20px;
-    margin-right: 20px;
+    margin-bottom: 10px;
+    margin-left: 10px;
+    margin-right: 10px;
     gap: 5px;
 }
 
@@ -54,9 +54,25 @@
     font-size: 16px;
     line-height: 150%;
     align-items: flex-end;
-    text-align: center;
+    text-align: justify;
+    text-align-last: center;
     letter-spacing: -0.01em;
     color: #616161;
+    width: calc(100% - 100px);
+}
+
+.chatEmptyStateDisclaimer {
+    margin-top: 20px;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 150%;
+    align-items: flex-end;
+    text-align: justify;
+    text-align-last: center;
+    letter-spacing: -0.01em;
+    color: #616161;
+    width: calc(100% - 100px);
 }
 
 .chatIcon {
@@ -141,54 +157,6 @@
     max-width: 1028px;
     margin-bottom: 50px;
     margin-top: 8px;
-}
-
-.clearChatBroom {
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    left: 7px;
-    top: 13px;
-    color: #FFFFFF;
-    border-radius: 4px;
-    z-index: 1;
-}
-
-.clearChatBroomNoCosmos {
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    left: 7px;
-    top: 66px;
-    color: #FFFFFF;
-    border-radius: 4px;
-    z-index: 1;
-}
-
-.newChatIcon {
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    left: 7px;
-    top: 10px;
-    color: #ffffff;
-    border-radius: 4px;
-    z-index: 1;
 }
 
 .stopGeneratingContainer {

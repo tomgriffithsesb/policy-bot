@@ -10,7 +10,7 @@ import { isEmpty } from "lodash";
 import DOMPurify from 'dompurify';
 
 import styles from "./Chat.module.css";
-import ESB from "../../assets/ESB.svg";
+import askEOLAS from "../../assets/askEOLAS.svg";
 import { XSSAllowTags } from "../../constants/xssAllowTags";
 
 import {
@@ -652,12 +652,12 @@ const Chat = () => {
                         {!messages || messages.length < 1 ? (
                             <Stack className={styles.chatEmptyState}>
                                 <img
-                                    src={ui?.chat_logo ? ui.chat_logo : ESB}
+                                    src={ui?.chat_logo ? ui.chat_logo : askEOLAS}
                                     className={styles.chatIcon}
                                     aria-hidden="true"
                                 />
-                                <h1 className={styles.chatEmptyStateTitle}>{ui?.chat_title}</h1>
                                 <h2 className={styles.chatEmptyStateSubtitle}>{ui?.chat_description}</h2>
+                                <h3 className={styles.chatEmptyStateDisclaimer}>{ui?.chat_disclaimer}</h3>
                             </Stack>
                         ) : (
                             <div className={styles.chatMessageStream} style={{ marginBottom: isLoading ? "40px" : "0px" }} role="log">
@@ -721,32 +721,6 @@ const Chat = () => {
                                 </Stack>
                             )}
                             <Stack>
-                                {appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured && 
-                                <CommandBarButton
-                                    role="button"
-                                    styles={{
-                                        icon: {
-                                            color: '#FFFFFF',
-                                        },
-                                        iconDisabled: {
-                                            color: "#8795a2 !important"
-                                        },
-                                        root: {
-                                            color: '#FFFFFF',
-                                            background: '#009fdf'
-                                        },
-                                        rootDisabled: {
-                                            color: '#009fdf',
-                                            background: "#F0F0F0"
-                                        }
-                                    }}
-                                    className={styles.newChatIcon}
-                                    iconProps={{ iconName: 'Add' }}
-                                    onClick={newChat}
-                                    disabled={disabledButton()}
-                                    aria-label="start a new chat button"
-                                /> 
-                                }
                                 <Dialog
                                     hidden={hideErrorDialog}
                                     onDismiss={handleErrorDialogClose}
