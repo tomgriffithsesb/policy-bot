@@ -85,7 +85,7 @@ export function ChatHistoryPanel(props: ChatHistoryPanelProps) {
     React.useEffect(() => {}, [appStateContext?.state.chatHistory, clearingError]);
 
     return (
-        <section className={styles.container} data-is-scrollable aria-label={"chat history panel"}>
+        <section className={styles.container} data-is-scrollable aria-label={"chat history panel"} aria-expanded="true">
             <Stack horizontal horizontalAlign='space-between' verticalAlign='center' wrap aria-label="chat history header">
                 <StackItem>
                     <Text role="heading" aria-level={2} style={{ alignSelf: "center", fontWeight: "600", fontSize: "18px", marginRight: "auto", paddingLeft: "20px" }}>Chat history</Text>

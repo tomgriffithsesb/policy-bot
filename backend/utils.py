@@ -9,6 +9,11 @@ from urllib.parse import unquote, urlparse
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 import pandas as pd
 
+####### For running locally
+from dotenv import load_dotenv
+load_dotenv()
+#######
+
 DEBUG = os.environ.get("DEBUG", "false")
 if DEBUG.lower() == "true":
     logging.basicConfig(level=logging.DEBUG)

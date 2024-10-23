@@ -177,6 +177,57 @@
     cursor: pointer;
 }
 
+.reportText {
+    color: #115EA3;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.copyButton {
+    color: slategray;
+}
+
+.copyButton:hover {
+    cursor: pointer;
+    color: darkslategray;
+    stroke: black;
+}
+
+.copyButtonText {
+    font-style: normal;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    color: #323130;
+}
+
+.thumbsIcon {
+    color: slategray;
+    cursor: pointer;
+}
+
+.thumbsIconLiked {
+    color: green;
+    stroke: black;
+    stroke-width: 2;
+    cursor:pointer;
+}
+
+.thumbsIconDisliked {
+    color: red;
+    stroke: black;
+    stroke-width: 2;
+    cursor:pointer;
+}
+
+.thumbsIcon:hover {
+    stroke: black;
+    stroke-width: 2;
+}
+
+
 sup {
     font-size: 10px;
     line-height: 10px;

@@ -56,8 +56,9 @@ UI_CHAT_DESCRIPTION = (
     os.environ.get("UI_CHAT_DESCRIPTION")
     or "This chatbot is configured to answer your questions"
 )
-UI_FAVICON = os.environ.get("UI_FAVICON") or "/favicon.ico"
+UI_FAVICON = "ESB.ico"
 UI_SHOW_SHARE_BUTTON = os.environ.get("UI_SHOW_SHARE_BUTTON", "true").lower() == "true"
+UI_DISCLAIMER = os.environ.get("UI_DISCLAIMER")
 
 # Custom Settings
 BLOB_ACCOUNT = os.environ.get("BLOB_ACCOUNT")
@@ -247,6 +248,7 @@ frontend_settings = {
         "chat_logo": UI_CHAT_LOGO or UI_LOGO,
         "chat_title": UI_CHAT_TITLE,
         "chat_description": UI_CHAT_DESCRIPTION,
+        "chat_disclaimer": UI_DISCLAIMER,
         "show_share_button": UI_SHOW_SHARE_BUTTON,
     },
     "sanitize_answer": SANITIZE_ANSWER,
@@ -261,7 +263,7 @@ def create_app():
 
 @bp.route("/")
 async def index():
-    return await render_template("index.html", title=UI_TITLE, icon=(UI_LOGO or './assets/Contoso-ff70ad88.svg'), favicon=UI_FAVICON)
+    return await render_template("index.html", title=UI_TITLE, favicon=UI_FAVICON)
 
 
 @bp.route("/favicon.ico")

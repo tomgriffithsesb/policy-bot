@@ -14,7 +14,7 @@ import remarkGfm from "remark-gfm";
 import supersub from 'remark-supersub'
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter';
 import { nord } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { ThumbDislike20Filled, ThumbLike20Filled } from "@fluentui/react-icons";
+import { ThumbDislike20Filled, ThumbLike20Filled, Copy20Regular } from "@fluentui/react-icons"; 
 import { XSSAllowTags } from "../../constants/xssAllowTags";
 
 interface Props {
@@ -36,7 +36,7 @@ export const Answer = ({
 
     const [isRefAccordionOpen, { toggle: toggleIsRefAccordionOpen }] = useBoolean(false);
     const filePathTruncationLimit = 50;
-
+    const [copyMessageClicked, setCopyMessageClicked] = useState<boolean>(false); 
     const parsedAnswer = useMemo(() => parseAnswer(answer), [answer]);
     const [chevronIsExpanded, setChevronIsExpanded] = useState(isRefAccordionOpen);
     const [feedbackState, setFeedbackState] = useState(initializeAnswerFeedback(answer));
@@ -92,25 +92,24 @@ export const Answer = ({
 
     const onLikeResponseClicked = async () => {
         if (answer.message_id == undefined) return;
-
+    
         let newFeedbackState = feedbackState;
         // Set or unset the thumbs up state
         if (feedbackState == Feedback.Positive) {
             newFeedbackState = Feedback.Neutral;
-        }
-        else {
+        } else {
             newFeedbackState = Feedback.Positive;
         }
         appStateContext?.dispatch({ type: 'SET_FEEDBACK_STATE', payload: { answerId: answer.message_id, feedback: newFeedbackState } });
         setFeedbackState(newFeedbackState);
-
+    
         // Update message feedback in db
         await historyMessageFeedback(answer.message_id, newFeedbackState);
-    }
-
+    };
+    
     const onDislikeResponseClicked = async () => {
         if (answer.message_id == undefined) return;
-
+    
         let newFeedbackState = feedbackState;
         if (feedbackState === undefined || feedbackState === Feedback.Neutral || feedbackState === Feedback.Positive) {
             newFeedbackState = Feedback.Negative;
@@ -123,7 +122,7 @@ export const Answer = ({
             await historyMessageFeedback(answer.message_id, Feedback.Neutral);
         }
         appStateContext?.dispatch({ type: 'SET_FEEDBACK_STATE', payload: { answerId: answer.message_id, feedback: newFeedbackState }});
-    }
+    };
 
     const updateFeedbackList = (ev?: FormEvent<HTMLElement | HTMLInputElement>, checked?: boolean) => {
         if (answer.message_id == undefined) return;
@@ -155,13 +154,13 @@ export const Answer = ({
         return (<>
             <div>Why wasn't this response helpful?</div>
             <Stack tokens={{childrenGap: 4}}>
-                <Checkbox label="Difficult to understand" id={Feedback.DifficultToUnderstand} defaultChecked={negativeFeedbackList.includes(Feedback.DifficultToUnderstand)} onChange={updateFeedbackList}></Checkbox>
-                <Checkbox label="Not informative" id={Feedback.NotInformative} defaultChecked={negativeFeedbackList.includes(Feedback.NotInformative)} onChange={updateFeedbackList}></Checkbox>
-                <Checkbox label="Incorrect information" id={Feedback.IncorrectInformation} defaultChecked={negativeFeedbackList.includes(Feedback.IncorrectInformation)} onChange={updateFeedbackList}></Checkbox>
-                <Checkbox label="I didn't get my answer" id={Feedback.DidntGetAnswer} defaultChecked={negativeFeedbackList.includes(Feedback.DidntGetAnswer)} onChange={updateFeedbackList}></Checkbox>
-                <Checkbox label="Other" id={Feedback.OtherUnhelpful} defaultChecked={negativeFeedbackList.includes(Feedback.OtherUnhelpful)} onChange={updateFeedbackList}></Checkbox>
+                <Checkbox aria-labelledby="label-difficult-to-understand" label="Difficult to understand" id={Feedback.DifficultToUnderstand} defaultChecked={negativeFeedbackList.includes(Feedback.DifficultToUnderstand)} onChange={updateFeedbackList}></Checkbox>
+                <Checkbox aria-labelledby="label-not-informative" label="Not informative" id={Feedback.NotInformative} defaultChecked={negativeFeedbackList.includes(Feedback.NotInformative)} onChange={updateFeedbackList}></Checkbox>
+                <Checkbox aria-labelledby="label-incorrect-information" label="Incorrect information" id={Feedback.IncorrectInformation} defaultChecked={negativeFeedbackList.includes(Feedback.IncorrectInformation)} onChange={updateFeedbackList}></Checkbox>
+                <Checkbox aria-labelledby="label-didn't-get-answer" label="I didn't get my answer" id={Feedback.DidntGetAnswer} defaultChecked={negativeFeedbackList.includes(Feedback.DidntGetAnswer)} onChange={updateFeedbackList}></Checkbox>
+                <Checkbox aria-labelledby="label-other" label="Other" id={Feedback.OtherUnhelpful} defaultChecked={negativeFeedbackList.includes(Feedback.OtherUnhelpful)} onChange={updateFeedbackList}></Checkbox>
             </Stack>
-            <div onClick={() => setShowReportInappropriateFeedback(true)} style={{ color: "#115EA3", cursor: "pointer"}}>Report inappropriate content</div>
+            <div tabIndex={0} onClick={() => setShowReportInappropriateFeedback(true)} className={styles.reportText} >Report inappropriate content</div>
         </>);
     }
 
@@ -170,15 +169,23 @@ export const Answer = ({
             <>
                 <div>The content is <span style={{ color: "red" }} >*</span></div>
                 <Stack tokens={{childrenGap: 4}}>
-                    <Checkbox label="Hate speech, stereotyping, demeaning" id={Feedback.HateSpeech} defaultChecked={negativeFeedbackList.includes(Feedback.HateSpeech)} onChange={updateFeedbackList}></Checkbox>
-                    <Checkbox label="Violent: glorification of violence, self-harm" id={Feedback.Violent} defaultChecked={negativeFeedbackList.includes(Feedback.Violent)} onChange={updateFeedbackList}></Checkbox>
-                    <Checkbox label="Sexual: explicit content, grooming" id={Feedback.Sexual} defaultChecked={negativeFeedbackList.includes(Feedback.Sexual)} onChange={updateFeedbackList}></Checkbox>
-                    <Checkbox label="Manipulative: devious, emotional, pushy, bullying" defaultChecked={negativeFeedbackList.includes(Feedback.Manipulative)} id={Feedback.Manipulative} onChange={updateFeedbackList}></Checkbox>
-                    <Checkbox label="Other" id={Feedback.OtherHarmful} defaultChecked={negativeFeedbackList.includes(Feedback.OtherHarmful)} onChange={updateFeedbackList}></Checkbox>
+                    <Checkbox aria-labelledby="label-hate-speech" label="Hate speech, stereotyping, demeaning" id={Feedback.HateSpeech} defaultChecked={negativeFeedbackList.includes(Feedback.HateSpeech)} onChange={updateFeedbackList}></Checkbox>
+                    <Checkbox aria-labelledby="label-violent" label="Violent: glorification of violence, self-harm" id={Feedback.Violent} defaultChecked={negativeFeedbackList.includes(Feedback.Violent)} onChange={updateFeedbackList}></Checkbox>
+                    <Checkbox aria-labelledby="label-sexual" label="Sexual: explicit content, grooming" id={Feedback.Sexual} defaultChecked={negativeFeedbackList.includes(Feedback.Sexual)} onChange={updateFeedbackList}></Checkbox>
+                    <Checkbox aria-labelledby="label-manipulative" label="Manipulative: devious, emotional, pushy, bullying" defaultChecked={negativeFeedbackList.includes(Feedback.Manipulative)} id={Feedback.Manipulative} onChange={updateFeedbackList}></Checkbox>
+                    <Checkbox aria-labelledby="label-other" label="Other" id={Feedback.OtherHarmful} defaultChecked={negativeFeedbackList.includes(Feedback.OtherHarmful)} onChange={updateFeedbackList}></Checkbox>
                 </Stack>
             </>
         );
     }
+
+    const handleCopyMessageClick = () => { 
+        navigator.clipboard.writeText(parsedAnswer.markdownFormatText); 
+            setCopyMessageClicked(true); 
+            setTimeout(() => { 
+                setCopyMessageClicked(false); 
+            }, 2000); 
+        };    
 
     const components = {
         code({node, ...props}: {node: any, [key: string]: any}) {
@@ -195,10 +202,10 @@ export const Answer = ({
             );
         },
     };
+
     return (
         <>
             <Stack className={styles.answerContainer} tabIndex={0}>
-                
                 <Stack.Item>
                     <Stack horizontal grow>
                         <Stack.Item grow>
@@ -211,27 +218,49 @@ export const Answer = ({
                             />
                         </Stack.Item>
                         <Stack.Item className={styles.answerHeader}>
-                            {FEEDBACK_ENABLED && answer.message_id !== undefined && <Stack horizontal horizontalAlign="space-between">
-                                <ThumbLike20Filled
-                                    aria-hidden="false"
-                                    aria-label="Like this response"
-                                    onClick={() => onLikeResponseClicked()}
-                                    style={feedbackState === Feedback.Positive || appStateContext?.state.feedbackState[answer.message_id] === Feedback.Positive ? 
-                                        { color: "darkgreen", cursor: "pointer" } : 
-                                        { color: "slategray", cursor: "pointer" }}
-                                />
-                                <ThumbDislike20Filled
-                                    aria-hidden="false"
-                                    aria-label="Dislike this response"
-                                    onClick={() => onDislikeResponseClicked()}
-                                    style={(feedbackState !== Feedback.Positive && feedbackState !== Feedback.Neutral && feedbackState !== undefined) ? 
-                                        { color: "darkred", cursor: "pointer" } : 
-                                        { color: "slategray", cursor: "pointer" }}
-                                />
-                            </Stack>}
+                            {FEEDBACK_ENABLED && answer.message_id !== undefined && (
+                                <Stack horizontal horizontalAlign="space-between">
+                                    <span
+                                        className={styles.copyButtonText}
+                                        aria-live="polite"
+                                        role="status"
+                                        >
+                                        {copyMessageClicked ? "Copied" : ""}
+                                        </span>
+                                        <Copy20Regular
+                                        aria-label="Copy"
+                                        className={styles.copyButton}
+                                        role="button"
+                                        onClick={handleCopyMessageClick}
+                                        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleCopyMessageClick()}
+                                        tabIndex={0}
+                                        />
+                                        <ThumbLike20Filled
+                                        aria-hidden="false"
+                                        aria-label="Like this response"
+                                        role="button"
+                                        aria-pressed={feedbackState === Feedback.Positive || appStateContext?.state.feedbackState[answer.message_id] === Feedback.Positive}
+                                        aria-live="polite"
+                                        onClick={onLikeResponseClicked}
+                                        className={`${styles.thumbsIcon} ${feedbackState === Feedback.Positive || appStateContext?.state.feedbackState[answer.message_id] === Feedback.Positive ? styles.thumbsIconLiked : ''}`}
+                                        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onLikeResponseClicked()}
+                                        tabIndex={0}
+                                    />
+                                    <ThumbDislike20Filled
+                                        aria-hidden="false"
+                                        aria-label="Dislike this response"
+                                        role="button"
+                                        aria-pressed={feedbackState === Feedback.Negative}
+                                        aria-live="polite"
+                                        onClick={onDislikeResponseClicked}
+                                        className={`${styles.thumbsIcon} ${feedbackState === Feedback.Negative ? styles.thumbsIconDisliked : ''}`}
+                                        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onDislikeResponseClicked()}
+                                        tabIndex={0}
+                                    />
+                                </Stack>
+                            )}
                         </Stack.Item>
                     </Stack>
-                    
                 </Stack.Item>
                 <Stack horizontal className={styles.answerFooter}>
                 {!!parsedAnswer.citations.length && (
@@ -307,6 +336,7 @@ export const Answer = ({
                     title: "Submit Feedback",
                     showCloseButton: true
                 }}
+                aria-modal="true"
             >
                 <Stack tokens={{childrenGap: 4}}>
                     <div>Your feedback will improve this experience.</div>

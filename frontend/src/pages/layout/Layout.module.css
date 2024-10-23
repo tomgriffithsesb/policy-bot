@@ -34,14 +34,16 @@
 .headerIcon {
     height: 32px;
     width: auto;
-    margin-left: 36px;
+    margin-left: 20px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 .shareButtonContainer {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    margin-right: 20px;
+    margin-right: 10px;
 }
 
 .shareButton {

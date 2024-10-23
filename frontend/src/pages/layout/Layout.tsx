@@ -1,6 +1,7 @@
 import { Outlet, Link } from "react-router-dom";
 import styles from "./Layout.module.css";
 import ESB from "../../assets/ESB.svg";
+import ESBlogo from "../../assets/ESBlogo.svg"
 import { CopyRegular } from "@fluentui/react-icons";
 import { Dialog, Stack, TextField, Dropdown, IDropdownOption } from "@fluentui/react";
 import { useContext, useEffect, useState } from "react";
@@ -70,20 +71,23 @@ const Layout = () => {
                 <Stack horizontal verticalAlign="center" horizontalAlign="space-between">
                     <Stack horizontal verticalAlign="center">
                         <img
-                            src={ui?.logo ? ui.logo : ESB}
+                            src={ui?.logo ? ui.logo : ESBlogo}
                             className={styles.headerIcon}
                             aria-hidden="true"
                         />
-                        <Link to="/" className={styles.headerTitleContainer}>
-                        <h1 className={styles.headerTitle}>{ui?.title}</h1>
-                        </Link>
                     </Stack>
                     <Stack horizontal tokens={{ childrenGap: 10 }} className={styles.shareButtonContainer}>
-                        {(appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured) &&
-                            <HistoryButton onClick={handleHistoryClick} text={appStateContext?.state?.isChatHistoryOpen ? hideHistoryLabel : showHistoryLabel} />
-                        }
-                        {ui?.show_share_button &&<ShareButton onClick={handleShareClick} text={shareLabel} />}
-                    </Stack>
+                        {(appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured) && (
+                            <HistoryButton
+                            onClick={handleHistoryClick}
+                            text={appStateContext?.state?.isChatHistoryOpen ? hideHistoryLabel : showHistoryLabel}
+                            ariaExpanded={appStateContext?.state?.isChatHistoryOpen}
+                            />
+                        )}
+                        {ui?.show_share_button && (
+                            <ShareButton onClick={handleShareClick} text={shareLabel} />
+                        )}
+                        </Stack>
                 </Stack>
             </header>
             <Outlet />

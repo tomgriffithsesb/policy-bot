@@ -45,12 +45,12 @@ def get_user_business_unit(user_id):
             r = requests.get(endpoint, headers=headers)
             if r.status_code != 200:
                 logging.error(f"Error fetching user's business unit: {r.status_code} {r.text}")
-                return []
-            return r.json()['companyName']
+                return None
+            return r.json()['companyName'][0]
 
         except Exception as e:
             logging.error(f"Exception in getUserBusinessUnit: {e}")
-            return []
+            return None
     except:
         logging.error("Error getting access token.")
-        return []
+        return None
