@@ -924,7 +924,7 @@ def get_frontend_settings():
         logging.exception("Exception in /frontend_settings")
         return jsonify({"error": str(e)}), 500
 
-# Category data
+# Load category data
 categories_url = BLOB_ACCOUNT+"/"+BLOB_CONTAINER+"/"+CATEGORIES_DATA_FILEPATH
 categories = get_category_data(categories_url)[0]
 subcategories = get_category_data(categories_url)[1]
@@ -1048,6 +1048,7 @@ async def update_conversation():
                 conversation_id=conversation_id,
                 user_id=user_id,
                 input_message=messages[-1],
+                filenames=filenames
             )
         else:
             raise Exception("No bot messages found")
