@@ -1028,7 +1028,7 @@ async def update_conversation():
                     for i in enumerate(content['citations']):
                         files_list.append(i[1]['title'])
 
-                    filenames = list(dict.fromkeys(files_list))
+                    filenames = ','.join(list(dict.fromkeys(files_list)))
 
                 else:
                     filenames=""
