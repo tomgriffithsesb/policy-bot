@@ -210,9 +210,11 @@
     order: 0;
     align-self: stretch;
     flex-grow: 0.3;
-    max-width: 30%;
     overflow-y: scroll;
     max-height: calc(100vh - 100px);
+    height:100%;
+    direction:ltr;
+    margin-left: 5px;
 }
 
 .citationPanelHeaderContainer {

@@ -8,6 +8,11 @@ import rehypeRaw from "rehype-raw";
 import uuid from 'react-uuid';
 import { isEmpty } from "lodash";
 import DOMPurify from 'dompurify';
+import { 
+    Panel, 
+    PanelGroup, 
+    PanelResizeHandle, 
+} from "react-resizable-panels"; 
 
 import styles from "./Chat.module.css";
 import askEOLAS from "../../assets/askEOLAS.svg";
@@ -313,6 +318,12 @@ const Chat = () => {
             if (!response?.ok) {
                 const responseJson = await response.json();
                 var errorResponseMessage = responseJson.error === undefined ? "Please try again. If the problem persists, please contact the site administrator." : responseJson.error;
+                // Check for specific error code and message
+                console.log(responseJson.error)
+                if (responseJson.error?.includes("Failed to execute query because not enough resources were available")) {
+                    console.log("Error handling happening...")
+                    errorResponseMessage = "Your query is too complex, please try simplifying the question.";
+                }
                 let errorChatMsg: ChatMessage = {
                     id: uuid(),
                     role: ERROR,
@@ -435,6 +446,12 @@ const Chat = () => {
                 else if (typeof result.error === "string") {
                     errorMessage = result.error;
                 }
+                // Check for specific error code and message
+                console.log(errorResponseMessage)
+                if (errorResponseMessage.includes("Failed to execute query because not enough resources were available")) {
+                    console.log("Error handling happening...")
+                    errorMessage = "Your query is too complex, please try simplifying the question.";
+                }
                 let errorChatMsg: ChatMessage = {
                     id: uuid(),
                     role: ERROR,
@@ -495,27 +512,6 @@ const Chat = () => {
         return abortController.abort();
 
     }
-
-    const clearChat = async () => {
-        setClearingChat(true)
-        if (appStateContext?.state.currentChat?.id && appStateContext?.state.isCosmosDBAvailable.cosmosDB) {
-            let response = await historyClear(appStateContext?.state.currentChat.id)
-            if (!response.ok) {
-                setErrorMsg({
-                    title: "Error clearing current chat",
-                    subtitle: "Please try again. If the problem persists, please contact the site administrator.",
-                })
-                toggleErrorDialog();
-            } else {
-                appStateContext?.dispatch({ type: 'DELETE_CURRENT_CHAT_MESSAGES', payload: appStateContext?.state.currentChat.id });
-                appStateContext?.dispatch({ type: 'UPDATE_CHAT_HISTORY', payload: appStateContext?.state.currentChat });
-                setActiveCitation(undefined);
-                setIsCitationPanelOpen(false);
-                setMessages([])
-            }
-        }
-        setClearingChat(false)
-    };
 
     const newChat = () => {
         setProcessMessages(messageStatus.Processing)
@@ -648,7 +644,9 @@ const Chat = () => {
                 </Stack>
             ) : (
                 <Stack horizontal className={styles.chatRoot}>
-                    <div className={styles.chatContainer}>
+                    <PanelGroup direction="horizontal">
+                        <Panel id="chat" minSize={20} order={1} className={styles.chatContainer}>
+                            {/* <div> */}
                         {!messages || messages.length < 1 ? (
                             <Stack className={styles.chatEmptyState}>
                                 <img
@@ -739,28 +737,26 @@ const Chat = () => {
                                 conversationId={appStateContext?.state.currentChat?.id ? appStateContext?.state.currentChat?.id : undefined}
                             />
                         </Stack>
-                    </div>
+                    {/* </div> */}
+                    </Panel>
                     {/* Citation Panel */}
                     {messages && messages.length > 0 && isCitationPanelOpen && activeCitation && (
-                        <Stack.Item className={styles.citationPanel} tabIndex={0} role="tabpanel" aria-label="Citations Panel">
-                            <Stack aria-label="Citations Panel Header Container" horizontal className={styles.citationPanelHeaderContainer} horizontalAlign="space-between" verticalAlign="center">
-                                <span aria-label="Citations" className={styles.citationPanelHeader}>Citations</span>
-                                <IconButton iconProps={{ iconName: 'Cancel' }} aria-label="Close citations panel" onClick={() => setIsCitationPanelOpen(false)} />
-                            </Stack>
-                            <h5 className={styles.citationPanelTitle} tabIndex={0} title={activeCitation.url ? activeCitation.url : activeCitation.title ?? ""} onClick={() => onViewSource(activeCitation)}>{activeCitation.title}</h5>
-                            <iframe key={iframeState} src={activeCitation.url+"#page="+activeCitation.page} width="100%" height="100%"></iframe>
-                            {/* <div tabIndex={0}>
-                                <ReactMarkdown
-                                    linkTarget="_blank"
-                                    className={styles.citationPanelContent}
-                                    children={DOMPurify.sanitize(activeCitation.content, {ALLOWED_TAGS: XSSAllowTags})}
-                                    remarkPlugins={[remarkGfm]}
-                                    rehypePlugins={[rehypeRaw]}
-                                />
-                            </div> */}
-                        </Stack.Item>
-                    )}
-                    {(appStateContext?.state.isChatHistoryOpen && appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured) && <ChatHistoryPanel />}
+                            <>
+                            <PanelResizeHandle className={styles.citationPanelContainer}/>
+                            <Panel className={styles.citationPanelContainer} minSize={20} defaultSize={30} id="citations" order={2}>
+                                <Stack.Item className={styles.citationPanel} tabIndex={0} role="tabpanel" aria-label="Citations Panel">
+                                    <Stack aria-label="Citations Panel Header Container" horizontal className={styles.citationPanelHeaderContainer} horizontalAlign="space-between" verticalAlign="center">
+                                        <span aria-label="Citations" className={styles.citationPanelHeader}>Citations</span>
+                                        <IconButton iconProps={{ iconName: 'Cancel' }} aria-label="Close citations panel" onClick={() => setIsCitationPanelOpen(false)} />
+                                    </Stack>
+                                    <h5 className={styles.citationPanelTitle} tabIndex={0} title={activeCitation.url ? activeCitation.url : activeCitation.title ?? ""} onClick={() => onViewSource(activeCitation)}>{activeCitation.title}</h5>
+                                    <iframe key={iframeState} src={activeCitation.url+"#page="+activeCitation.page} width="100%" height="100%"></iframe>
+                                </Stack.Item>
+                            </Panel>
+                            </> 
+                        )}
+                        {(appStateContext?.state.isChatHistoryOpen && appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured) && <ChatHistoryPanel />}
+                    </PanelGroup>
                 </Stack>
             )}
         </div>
