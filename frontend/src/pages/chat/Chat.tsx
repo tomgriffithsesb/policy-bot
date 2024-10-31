@@ -8,11 +8,6 @@ import rehypeRaw from "rehype-raw";
 import uuid from 'react-uuid';
 import { isEmpty } from "lodash";
 import DOMPurify from 'dompurify';
-import { 
-    Panel, 
-    PanelGroup, 
-    PanelResizeHandle, 
-} from "react-resizable-panels"; 
 
 import styles from "./Chat.module.css";
 import askEOLAS from "../../assets/askEOLAS.svg";
@@ -653,8 +648,7 @@ const Chat = () => {
                 </Stack>
             ) : (
                 <Stack horizontal className={styles.chatRoot}>
-                    <PanelGroup direction="horizontal">
-                        <Panel id="chat" minSize={20} order={1} className={styles.chatContainer}>
+                    <div className={styles.chatContainer}>
                         {!messages || messages.length < 1 ? (
                             <Stack className={styles.chatEmptyState}>
                                 <img
@@ -745,25 +739,28 @@ const Chat = () => {
                                 conversationId={appStateContext?.state.currentChat?.id ? appStateContext?.state.currentChat?.id : undefined}
                             />
                         </Stack>
- </Panel>
-                        {/* Citation Panel */}
-                        {messages && messages.length > 0 && isCitationPanelOpen && activeCitation && (
-                            <>
-                            <PanelResizeHandle className={styles.citationPanelContainer}/>
-                            <Panel className={styles.citationPanelContainer} minSize={20} defaultSize={30} id="citations" order={2}>
-                                <Stack.Item className={styles.citationPanel} tabIndex={0} role="tabpanel" aria-label="Citations Panel">
-                                    <Stack aria-label="Citations Panel Header Container" horizontal className={styles.citationPanelHeaderContainer} horizontalAlign="space-between" verticalAlign="center">
-                                        <span aria-label="Citations" className={styles.citationPanelHeader}>Citations</span>
-                                        <IconButton iconProps={{ iconName: 'Cancel' }} aria-label="Close citations panel" onClick={() => setIsCitationPanelOpen(false)} />
-                                    </Stack>
-                                    <h5 className={styles.citationPanelTitle} tabIndex={0} title={activeCitation.url ? activeCitation.url : activeCitation.title ?? ""} onClick={() => onViewSource(activeCitation)}>{activeCitation.title}</h5>
-                                    <iframe key={iframeState} src={activeCitation.url+"#page="+activeCitation.page} width="100%" height="100%"></iframe>
-                                </Stack.Item>
-                            </Panel>
-                            </> 
-                        )}
-                        {(appStateContext?.state.isChatHistoryOpen && appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured) && <ChatHistoryPanel />}
-                    </PanelGroup>
+                    </div>
+                    {/* Citation Panel */}
+                    {messages && messages.length > 0 && isCitationPanelOpen && activeCitation && (
+                        <Stack.Item className={styles.citationPanel} tabIndex={0} role="tabpanel" aria-label="Citations Panel">
+                            <Stack aria-label="Citations Panel Header Container" horizontal className={styles.citationPanelHeaderContainer} horizontalAlign="space-between" verticalAlign="center">
+                                <span aria-label="Citations" className={styles.citationPanelHeader}>Citations</span>
+                                <IconButton iconProps={{ iconName: 'Cancel' }} aria-label="Close citations panel" onClick={() => setIsCitationPanelOpen(false)} />
+                            </Stack>
+                            <h5 className={styles.citationPanelTitle} tabIndex={0} title={activeCitation.url ? activeCitation.url : activeCitation.title ?? ""} onClick={() => onViewSource(activeCitation)}>{activeCitation.title}</h5>
+                            <iframe key={iframeState} src={activeCitation.url+"#page="+activeCitation.page} width="100%" height="100%"></iframe>
+                            {/* <div tabIndex={0}>
+                                <ReactMarkdown
+                                    linkTarget="_blank"
+                                    className={styles.citationPanelContent}
+                                    children={DOMPurify.sanitize(activeCitation.content, {ALLOWED_TAGS: XSSAllowTags})}
+                                    remarkPlugins={[remarkGfm]}
+                                    rehypePlugins={[rehypeRaw]}
+                                />
+                            </div> */}
+                        </Stack.Item>
+                    )}
+                    {(appStateContext?.state.isChatHistoryOpen && appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured) && <ChatHistoryPanel />}
                 </Stack>
             )}
         </div>
