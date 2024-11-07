@@ -2,11 +2,12 @@ import { CommandBarButton, ContextualMenu, DefaultButton, Dialog, DialogFooter, 
 import { useBoolean } from '@fluentui/react-hooks';
 
 import styles from "./ChatHistoryPanel.module.css"
-import { useContext } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { AppStateContext } from "../../state/AppProvider";
 import React from "react";
 import ChatHistoryList from "./ChatHistoryList";
 import { ChatHistoryLoadingState, historyDeleteAll } from "../../api";
+import { FocusTrapZone } from '@fluentui/react/lib/FocusTrapZone';
 
 interface ChatHistoryPanelProps {
 
@@ -33,6 +34,7 @@ export function ChatHistoryPanel(props: ChatHistoryPanelProps) {
     const [hideClearAllDialog, { toggle: toggleClearAllDialog }] = useBoolean(true);
     const [clearing, setClearing] = React.useState(false)
     const [clearingError, setClearingError] = React.useState(false)
+    const chatHistoryRef = useRef<HTMLDivElement>(null);
 
     const clearAllDialogContentProps = {
         type: DialogType.close,
@@ -84,11 +86,20 @@ export function ChatHistoryPanel(props: ChatHistoryPanelProps) {
 
     React.useEffect(() => {}, [appStateContext?.state.chatHistory, clearingError]);
 
+    useEffect(() => {
+        if (appStateContext?.state.isChatHistoryOpen && chatHistoryRef.current) {
+            chatHistoryRef.current.focus();
+        }
+    }, [appStateContext?.state.isChatHistoryOpen]);
+
     return (
+        <FocusTrapZone isClickableOutsideFocusTrap={true} forceFocusInsideTrap={true}> {/* <-- Wrapping in FocusTrapZone */}
         <section className={styles.container} data-is-scrollable aria-label={"chat history panel"} aria-expanded="true">
             <Stack horizontal horizontalAlign='space-between' verticalAlign='center' wrap aria-label="chat history header">
                 <StackItem>
-                    <Text role="heading" aria-level={2} style={{ alignSelf: "center", fontWeight: "600", fontSize: "18px", marginRight: "auto", paddingLeft: "20px" }}>Chat history</Text>
+                <div ref={chatHistoryRef} tabIndex={-1}>
+                        <Text role="heading" aria-level={2} style={{ alignSelf: "center", fontWeight: "600", fontSize: "18px", marginRight: "auto", paddingLeft: "20px" }}>Chat history</Text>
+                    </div>
                 </StackItem>
                 <Stack verticalAlign="start">
                     <Stack horizontal styles={commandBarButtonStyle}>
@@ -184,5 +195,6 @@ export function ChatHistoryPanel(props: ChatHistoryPanelProps) {
                 </DialogFooter>
             </Dialog>
         </section>
+        </FocusTrapZone>
     );
 }

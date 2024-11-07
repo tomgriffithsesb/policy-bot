@@ -1,0 +1,181 @@
+trigger:
+- develop
+pool: 
+  vmImage: ubuntu-latest
+resources:
+- repo: self
+
+variables:
+    # Container registry service connection established during pipeline creation
+    dockerRegistryServiceConnection: 'es-datascience-acr-dev-spn-01'
+    imageRepository: 'esdatasciencedevacr01'
+    containerRegistry: 'esdatasciencedevacr01.azurecr.io'
+    dockerfilePath: '$(Build.SourcesDirectory)/WebApp.Dockerfile'
+    tag: '$(Build.BuildId)'
+    vmImageName: 'ubuntu-latest'
+
+stages :
+  - stage: "Build"
+    condition: true
+    displayName: "Build and Push container"
+    jobs:
+    - job: "Build_code"
+      steps:
+        - task: AzureCLI@2
+          condition: always()
+          displayName: "Add current Agent External IP to ACR FW"
+          inputs:
+             azureSubscription: 'es-datascience-dev-spn-01'
+             scriptType: 'bash'
+             scriptLocation: 'inlineScript'
+             inlineScript: |
+                ipaddress=$(curl -s http://ipinfo.io/ip)
+                echo "External IP address: $ipaddress"
+                az acr network-rule add -n $(containerRegistry) --ip-address $ipaddress
+                echo "Added IP address $ipaddress to ACR firewall"
+
+        - task: Bash@3
+          enabled: false
+          inputs:
+            filePath: '$(System.DefaultWorkingDirectory)/start.sh'
+        - task: CmdLine@2
+          enabled: false
+          inputs:
+            script: '$(System.DefaultWorkingDirectory)\start.cmd'
+
+        - task: Docker@2
+          continueOnError: true
+          displayName: Build and push an image to container registry
+          inputs:
+            command: buildAndPush
+            repository: $(imageRepository)
+            dockerfile: $(dockerfilePath)
+            containerRegistry: $(dockerRegistryServiceConnection)
+            tags: |
+              $(tag)
+        - task: AzureCLI@2
+          condition: always()
+          displayName: "Add current Agent External IP to ACR FW"
+          inputs:
+             azureSubscription: 'es-datascience-dev-spn-01'
+             scriptType: 'bash'
+             scriptLocation: 'inlineScript'
+             inlineScript: |
+                ipaddress=$(curl -s http://ipinfo.io/ip)
+                echo "External IP address: $ipaddress"
+                az acr network-rule remove -n $(containerRegistry) --ip-address $ipaddress
+                echo "Removed IP address $ipaddress from ACR firewall"
+  - stage: "Scan"
+    condition: true
+    dependsOn: Build
+    displayName: "Scan"
+    pool: DevSecOpsPlatform
+    jobs:
+    - job: "PublishContainer"
+      steps:
+        
+       - task: SonarQubePrepare@6
+         displayName: 'Configure SonarQube Analysis'
+         enabled: true
+         inputs:
+          sonarQube: 'SonarQubeGlb'
+          scannerMode: CLI
+          configMode: 'manual'
+          cliProjectKey: 'Analytics_es-datascience-eolasbot_81cef521-f0b4-4609-9417-dc40ecd70e17'
+          cliProjectName: 'es-datascience-eolasbot'
+          extraProperties: |
+            sonar.dependencyCheck.reportPath=$(Agent.BuildDirectory)\TestResults\dependency-check-report.xml
+            sonar.dependencyCheck.htmlReportPath=$(Agent.BuildDirectory)\TestResults\dependency-check-report.html
+    # - task: CmdLine@2
+    #   enabled: ${{ variables.DCEnabled }}
+    #   inputs:
+    #     script: '%DEPENDENCY_CHECK_PATH% -s "$(Build.SourcesDirectory)" -l odc.log -f ALL -o "..\TestResults" --project "Switch FE" --disableYarnAudit --disableOssIndex true'
+      
+       - task: CmdLine@2
+         continueOnError: true
+         displayName: 'OWASP Dependency Check'
+         inputs:
+          script: '%DEPENDENCY_CHECK_PATH% -s "$(Build.SourcesDirectory)" -l odc.log -f ALL -o "..\TestResults" --project "es-datascience-eolasbot" --disableYarnAudit --disableOssIndex true'
+
+    #Run Code Analysis task
+       - task: SonarQubeAnalyze@6
+         condition: succeededOrFailed()
+         enabled: true
+         displayName: 'Run Code Analysis'
+
+    # Publish Quality Gate Result task
+       - task: SonarQubePublish@6
+         enabled: true
+         inputs:
+           pollingTimeoutSec: '300'
+
+       - task: Gitleaks@2
+         displayName: Gitleaks
+         inputs:
+          scanlocation: '$(Build.SourcesDirectory)'
+          uploadresults: true
+          redact: true
+          taskfail: false
+          taskfailonexecutionerror: false
+          configtype: 'predefined'
+          reportformat: 'sarif'
+          scanmode: nogit
+
+
+  - stage: "DeployDev"
+    condition: true
+    dependsOn: Scan
+    displayName: "Publish container to Dev Stage"
+    jobs:
+    - job: "PublishContainer"
+      steps:
+        - task: AzureCLI@2
+          condition: always()
+          displayName: "Add current Agent External IP to WebApp FW"
+          inputs:
+             azureSubscription: 'es-datascience-dev-spn-01'
+             scriptType: 'bash'
+             scriptLocation: 'inlineScript'
+             inlineScript: |
+               ipaddress=$(curl -s http://ipinfo.io/ip)
+               echo "External IP address: $ipaddress"
+               echo "Rules before change -------------->"
+               az webapp config access-restriction add \
+               --resource-group es-datascience-dev-rg \
+               --name es-datascience-dev-web-01 \
+               --rule-name AllowExternalIP \
+               --action Allow \
+               --ip-address $ipaddress \
+               --priority 100
+               echo "Rules AFTER change -------------->"
+               echo "Added IP address $ipaddress to Web App access restrictions"
+
+        - task: Bash@3
+          enabled: false
+          inputs:
+            filePath: '$(System.DefaultWorkingDirectory)/start.sh'
+        - task: AzureWebAppContainer@1
+          displayName: 'Azure Web App on Container Deploy'
+          inputs:
+            azureSubscription: es-datascience-dev-spn-01
+            appName: es-datascience-dev-web-01
+            containers: esdatasciencedevacr01.azurecr.io/esdatasciencedevacr01:$(tag)
+            resourceGroupName: es-datascience-dev-rg
+            configurationStrings: '-linuxFxVersion DOCKER|esdatasciencedevacr01.azurecr.io/esdatasciencedevacr01:$(tag) -windowsFxVersion null'
+        - task: AzureCLI@2
+          condition: always()
+          displayName: "Add current Agent External IP to WebApp FW"
+          inputs:
+             azureSubscription: 'es-datascience-dev-spn-01'
+             scriptType: 'bash'
+             scriptLocation: 'inlineScript'
+             inlineScript: |
+               ipaddress=$(curl -s http://ipinfo.io/ip)
+               echo "External IP address: $ipaddress"
+               echo "Rules before change -------------->"
+               az webapp config access-restriction remove \
+               --resource-group es-datascience-dev-rg \
+               --name es-datascience-dev-web-01 \
+               --rule-name AllowExternalIP 
+               echo "Rules AFTER change -------------->"
+               echo "Removed IP address $ipaddress to Web App access restrictions"

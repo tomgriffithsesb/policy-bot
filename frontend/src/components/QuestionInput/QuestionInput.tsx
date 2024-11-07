@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Stack, TextField } from "@fluentui/react";
 import { SendRegular } from "@fluentui/react-icons";
 import Send from "../../assets/Send.svg";
@@ -14,21 +14,25 @@ interface Props {
 
 export const QuestionInput = ({ onSend, disabled, placeholder, clearOnSend, conversationId }: Props) => {
     const [question, setQuestion] = useState<string>("");
+    const [focusTrigger, setFocusTrigger] = useState<boolean>(false);
 
     const sendQuestion = () => {
         if (disabled || !question.trim()) {
             return;
         }
 
-        if(conversationId){
+        if (conversationId) {
             onSend(question, conversationId);
-        }else{
+        } else {
             onSend(question);
         }
 
         if (clearOnSend) {
             setQuestion("");
         }
+
+        // Trigger focus on the input field
+        setFocusTrigger(true);
     };
 
     const onEnterPress = (ev: React.KeyboardEvent<Element>) => {
@@ -43,6 +47,16 @@ export const QuestionInput = ({ onSend, disabled, placeholder, clearOnSend, conv
     };
 
     const sendQuestionDisabled = disabled || !question.trim();
+
+    useEffect(() => {
+        if (focusTrigger) {
+            const inputElement = document.querySelector(`.${styles.questionInputTextArea} textarea`);
+            if (inputElement) {
+                (inputElement as HTMLTextAreaElement).focus();
+            }
+            setFocusTrigger(false);
+        }
+    }, [focusTrigger]);
 
     return (
         <Stack horizontal className={styles.questionInputContainer}>
@@ -61,9 +75,13 @@ export const QuestionInput = ({ onSend, disabled, placeholder, clearOnSend, conv
                 tabIndex={0}
                 aria-label="Ask question button"
                 onClick={sendQuestion}
-                onKeyDown={e => e.key === "Enter" || e.key === " " ? sendQuestion() : null}
+                onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        sendQuestion();
+                    }
+                }}
             >
-                { sendQuestionDisabled ? 
+                {sendQuestionDisabled ? 
                     <SendRegular className={styles.questionInputSendButtonDisabled}/>
                     :
                     <img src={Send} className={styles.questionInputSendButton}/>

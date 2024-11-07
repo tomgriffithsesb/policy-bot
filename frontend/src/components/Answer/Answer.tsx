@@ -220,43 +220,45 @@ export const Answer = ({
                         <Stack.Item className={styles.answerHeader}>
                             {FEEDBACK_ENABLED && answer.message_id !== undefined && (
                                 <Stack horizontal horizontalAlign="space-between">
-                                    <span
+                                        <button
+                                        aria-label="Copy"
+                                        onClick={handleCopyMessageClick}
+                                        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleCopyMessageClick()}
+                                        className={`${styles.copyButton} ${styles.buttonReset}`}
+                                        tabIndex={0}
+                                        >
+                                        <Copy20Regular aria-hidden="true" />
+                                        </button>
+                                        <span
                                         className={styles.copyButtonText}
-                                        aria-live="polite"
+                                        aria-live="assertive"
                                         role="status"
                                         >
                                         {copyMessageClicked ? "Copied" : ""}
                                         </span>
-                                        <Copy20Regular
-                                        aria-label="Copy"
-                                        className={styles.copyButton}
-                                        role="button"
-                                        onClick={handleCopyMessageClick}
-                                        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleCopyMessageClick()}
-                                        tabIndex={0}
-                                        />
-                                        <ThumbLike20Filled
-                                        aria-hidden="false"
+                                        <button
                                         aria-label="Like this response"
-                                        role="button"
                                         aria-pressed={feedbackState === Feedback.Positive || appStateContext?.state.feedbackState[answer.message_id] === Feedback.Positive}
                                         aria-live="polite"
                                         onClick={onLikeResponseClicked}
-                                        className={`${styles.thumbsIcon} ${feedbackState === Feedback.Positive || appStateContext?.state.feedbackState[answer.message_id] === Feedback.Positive ? styles.thumbsIconLiked : ''}`}
                                         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onLikeResponseClicked()}
+                                        className={`${styles.thumbsIcon} ${feedbackState === Feedback.Positive || appStateContext?.state.feedbackState[answer.message_id] === Feedback.Positive ? styles.thumbsIconLiked : ''} ${styles.buttonReset}`}
                                         tabIndex={0}
-                                    />
-                                    <ThumbDislike20Filled
-                                        aria-hidden="false"
+                                        >
+                                        <ThumbLike20Filled aria-hidden="true" />
+                                        </button>
+
+                                        <button
                                         aria-label="Dislike this response"
-                                        role="button"
                                         aria-pressed={feedbackState === Feedback.Negative}
                                         aria-live="polite"
                                         onClick={onDislikeResponseClicked}
-                                        className={`${styles.thumbsIcon} ${feedbackState === Feedback.Negative ? styles.thumbsIconDisliked : ''}`}
                                         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onDislikeResponseClicked()}
+                                        className={`${styles.thumbsIcon} ${feedbackState === Feedback.Negative ? styles.thumbsIconDisliked : ''} ${styles.buttonReset}`}
                                         tabIndex={0}
-                                    />
+                                        >
+                                        <ThumbDislike20Filled aria-hidden="true" />
+                                        </button>
                                 </Stack>
                             )}
                         </Stack.Item>
@@ -287,7 +289,7 @@ export const Answer = ({
                     </Stack.Item>
                 )}
                 <Stack.Item className={styles.answerDisclaimerContainer}>
-                    <span className={styles.answerDisclaimer}>AI-generated content may be incorrect</span>
+                    <span className={styles.answerDisclaimer}>AI-generated content may need validation</span>
                 </Stack.Item>
                 </Stack>
                 {chevronIsExpanded && 
